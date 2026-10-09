@@ -1,0 +1,85 @@
+name: Deploy Ripple API
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: ripple-api-production
+  cancel-in-progress: false
+
+env:
+  PROJECT_ID: ${{ vars.GCP_PROJECT_ID || 'ripple-be-20261010-farras' }}
+  REGION: ${{ vars.GCP_REGION || 'asia-southeast2' }}
+  AR_REPOSITORY: ${{ vars.GCP_AR_REPOSITORY || 'ripple' }}
+  DEPLOY_SERVICE_ACCOUNT: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT || 'ripple-github-deployer@ripple-be-20261010-farras.iam.gserviceaccount.com' }}
+  RUNTIME_SERVICE_ACCOUNT: ${{ vars.GCP_RUNTIME_SERVICE_ACCOUNT || 'ripple-api-runtime@ripple-be-20261010-farras.iam.gserviceaccount.com' }}
+  FRONTEND_URL: ${{ vars.FRONTEND_URL || 'http://localhost:3000' }}
+  OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-4o-mini' }}
+  R2_ACCOUNT_ID: ${{ vars.R2_ACCOUNT_ID || '4cb0fa54a9988f4ecd2c204b0980960f' }}
+  R2_BUCKET: ${{ vars.R2_BUCKET || 'ripple' }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v3
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID || 'ripple-be-20261010-farras' }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER || 'projects/952973358181/locations/global/workloadIdentityPools/github/providers/ripple-be' }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT || 'ripple-github-deployer@ripple-be-20261010-farras.iam.gserviceaccount.com' }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.4'
+          cache: false
+
+      - name: Test backend
+        run: go test ./...
+
+      - name: Build and push image
+        run: |
+          gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+          IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/${AR_REPOSITORY}/ripple-api:${GITHUB_SHA}"
+          docker build --pull -t "$IMAGE" .
+          docker push "$IMAGE"
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+
+      - name: Apply database migrations
+        env:
+          DB_ADDR: ${{ secrets.SUPABASE_DB_ADDR }}
+        run: |
+          if [ -z "$DB_ADDR" ]; then
+            DB_ADDR="$(gcloud secrets versions access latest --secret=ripple-db-addr --project="$PROJECT_ID")"
+          fi
+          echo "::add-mask::$DB_ADDR"
+          go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@v4.19.1
+          "$(go env GOPATH)/bin/migrate" -path=cmd/migrate/migrations -database="$DB_ADDR" up
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy ripple-api \
+            --project="$PROJECT_ID" \
+            --region="$REGION" \
+            --platform=managed \
+            --image="$IMAGE" \
+            --port=8080 \
+            --allow-unauthenticated \
+            --service-account="$RUNTIME_SERVICE_ACCOUNT" \
+            --min=0 \
+            --max=2 \
+            --concurrency=40 \
+            --cpu=1 \
+            --memory=512Mi \
+            --timeout=300 \
+            --set-env-vars="ENV=production,ADDR=:8080,FRONTEND_URL=${FRONTEND_URL},OPENAI_MODEL=${OPENAI_MODEL},R2_ACCOUNT_ID=${R2_ACCOUNT_ID},R2_BUCKET=${R2_BUCKET},AI_IMAGE_ESTIMATE_CENTS=1,AI_VIDEO_ESTIMATE_CENTS=0,AI_IMAGE_REFINEMENT_ESTIMATE_CENTS=1,AI_VIDEO_REFINEMENT_ESTIMATE_CENTS=0" \
+            --update-secrets="DB_ADDR=ripple-db-addr:latest,JWT_SECRET=ripple-jwt-secret:latest,OPENAI_API_KEY=ripple-openai-api-key:latest,HF_API_KEY=ripple-hf-api-key:latest,R2_ACCESS_KEY_ID=ripple-r2-access-key-id:latest,R2_SECRET_ACCESS_KEY=ripple-r2-secret-access-key:latest"
