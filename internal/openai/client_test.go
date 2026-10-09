@@ -55,3 +55,31 @@ func TestSummaryImageAndPDFInputs(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestReviewedPlanAndSummaryRefinement(t *testing.T) {
+	c := New("test-key", "test-model")
+	output := `[{"title":"Garden","prompt":"Warm green garden"}]`
+	c.http = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatal(err)
+		}
+		if body["store"] != false || body["input"] == "" || body["instructions"] == "" {
+			t.Fatal("missing reviewed text input", body)
+		}
+		payload, _ := json.Marshal(map[string]any{"status": "completed", "output": []any{map[string]any{"type": "message", "content": []any{map[string]any{"type": "output_text", "text": output}}}}})
+		return &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader(string(payload)))}, nil
+	})}
+	plan, err := c.DraftPlan(context.Background(), "Warm green campaign", "video")
+	if err != nil || len(plan) != 1 || plan[0].Prompt != "Warm green garden" {
+		t.Fatal(plan, err)
+	}
+	output = "Revised summary with evening light"
+	text, err := c.RefineSummary(context.Background(), "Morning campaign", "Use evening light")
+	if err != nil || text != output {
+		t.Fatal(text, err)
+	}
+	if _, err = c.DraftPlan(context.Background(), "Campaign", "image"); err == nil {
+		t.Fatal("non-JSON plan accepted")
+	}
+}

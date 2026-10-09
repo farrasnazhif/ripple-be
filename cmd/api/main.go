@@ -83,9 +83,16 @@ func main() {
 		generator = higgsfield.New(key)
 	}
 	workflowHandler := handler.NewWorkflowHandler(service.NewStoryboardService(projectRepo, briefRepo, shotRepo), service.NewGenerationService(shotRepo, jobRepo, generator))
+	reviewRepo := repository.NewReviewRepository(db)
+	var reviewAI handler.ReviewAI
+	if key, model := os.Getenv("OPENAI_API_KEY"), os.Getenv("OPENAI_MODEL"); key != "" && model != "" {
+		reviewAI = openai.New(key, model)
+	}
+	reviewHandler := handler.NewReviewHandler(service.NewReviewService(reviewRepo, projectRepo, briefRepo, shotRepo, briefStorage), reviewAI, service.NewFinalOutputService(reviewRepo, projectRepo, briefRepo, shotRepo, jobRepo, briefStorage))
 	// Router
 	mux := router.New(router.Config{
 		Workflow:        workflowHandler,
+		Review:          reviewHandler,
 		FrontendURL:     frontendURL,
 		JWTSecret:       jwtSecret,
 		RateLimit:       30,
@@ -97,7 +104,7 @@ func main() {
 	srv := &http.Server{
 		Addr:         addr,
 		Handler:      mux,
-		WriteTimeout: 60 * time.Second,
+		WriteTimeout: 5 * time.Minute,
 		ReadTimeout:  10 * time.Second,
 		IdleTimeout:  time.Minute,
 	}

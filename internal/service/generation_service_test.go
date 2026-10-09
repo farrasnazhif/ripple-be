@@ -107,3 +107,20 @@ func TestAmbiguousGenerationNeverResubmits(t *testing.T) {
 		t.Fatal("ambiguous request retried")
 	}
 }
+
+func TestRefinementPromptAndIdempotency(t *testing.T) {
+	repo := &jobRepoStub{}
+	provider := &generatorStub{}
+	s := NewGenerationService(shotRepoStub{}, repo, provider)
+	ctx := context.Background()
+	j, err := s.Submit(ctx, "owner", "project", "shot", "image", "refinement-key", "Evening light, preserve the greens")
+	if err != nil || j.Prompt != "Evening light, preserve the greens" {
+		t.Fatal(j, err)
+	}
+	if _, err = s.Submit(ctx, "owner", "project", "shot", "image", "refinement-key", "Evening light, preserve the greens"); err != nil || provider.calls != 1 {
+		t.Fatal("refinement double charged", err)
+	}
+	if _, err = s.Submit(ctx, "owner", "project", "shot", "image", "refinement-key", "Different prompt"); !errors.Is(err, ErrInvalidGeneration) || provider.calls != 1 {
+		t.Fatal("idempotency key accepted changed prompt", err)
+	}
+}

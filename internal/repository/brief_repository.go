@@ -88,7 +88,7 @@ func (r *briefRepository) ListAttachments(ctx context.Context, userID, briefID s
 	defer cancel()
 	rows, err := r.db.QueryContext(ctx, `SELECT a.id, a.brief_id, a.object_key, a.file_name, a.content_type, a.size_bytes, a.status
 		FROM brief_attachments a JOIN briefs b ON b.id = a.brief_id
-		WHERE a.brief_id = $1 AND b.user_id = $2 AND a.status = 'completed' ORDER BY a.created_at`, briefID, userID)
+		WHERE a.brief_id = $1 AND b.user_id = $2 AND NOT a.removed AND a.status = 'completed' ORDER BY a.created_at`, briefID, userID)
 	if err != nil {
 		return nil, err
 	}

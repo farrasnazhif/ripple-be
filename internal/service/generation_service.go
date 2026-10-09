@@ -28,7 +28,7 @@ type GenerationService struct {
 func NewGenerationService(s repository.StoryboardRepository, r repository.GenerationRepository, p MediaGenerator) *GenerationService {
 	return &GenerationService{s, r, p}
 }
-func (s *GenerationService) Submit(ctx context.Context, user, project, shot, kind, key string) (*entity.GenerationJob, error) {
+func (s *GenerationService) Submit(ctx context.Context, user, project, shot, kind, key string, prompts ...string) (*entity.GenerationJob, error) {
 	if kind != "image" && kind != "video" {
 		return nil, ErrInvalidGeneration
 	}
@@ -36,9 +36,16 @@ func (s *GenerationService) Submit(ctx context.Context, user, project, shot, kin
 	if err != nil {
 		return nil, err
 	}
+	prompt := source.Prompt
+	if len(prompts) > 0 && prompts[0] != "" {
+		prompt = strings.TrimSpace(prompts[0])
+	}
+	if prompt == "" || len([]rune(prompt)) > 10000 {
+		return nil, ErrInvalidGeneration
+	}
 	// Check ownership and the original payload before returning an idempotent result.
 	if existing, err := s.repo.Get(ctx, user, project, key); err == nil {
-		if existing.ShotID != shot || existing.Kind != kind {
+		if existing.ShotID != shot || existing.Kind != kind || existing.Prompt != prompt {
 			return nil, ErrInvalidGeneration
 		}
 		return existing, nil
@@ -48,7 +55,7 @@ func (s *GenerationService) Submit(ctx context.Context, user, project, shot, kin
 	if s.provider == nil {
 		return nil, ErrGenerationUnavailable
 	}
-	j := &entity.GenerationJob{ShotID: shot, Kind: kind, RequestKey: key, Prompt: source.Prompt, Status: "submitting", Outputs: []string{}}
+	j := &entity.GenerationJob{ShotID: shot, Kind: kind, RequestKey: key, Prompt: prompt, Status: "submitting", Outputs: []string{}}
 	claimed, err := s.repo.Claim(ctx, j)
 	if err != nil {
 		return nil, err
@@ -58,7 +65,7 @@ func (s *GenerationService) Submit(ctx context.Context, user, project, shot, kin
 		if err != nil {
 			return nil, err
 		}
-		if existing.ShotID != shot || existing.Kind != kind {
+		if existing.ShotID != shot || existing.Kind != kind || existing.Prompt != prompt {
 			return nil, ErrInvalidGeneration
 		}
 		return existing, nil

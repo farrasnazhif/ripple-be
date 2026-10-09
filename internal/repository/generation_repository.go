@@ -24,7 +24,7 @@ func NewGenerationRepository(db *sql.DB) GenerationRepository { return &generati
 func (r *generationRepository) Claim(ctx context.Context, j *entity.GenerationJob) (bool, error) {
 	ctx, cancel := context.WithTimeout(ctx, queryTimeout)
 	defer cancel()
-	err := r.db.QueryRowContext(ctx, `INSERT INTO generation_jobs(shot_id,request_key,kind,prompt) VALUES($1,$2,$3,$4) ON CONFLICT(request_key) DO NOTHING RETURNING id,created_at`, j.ShotID, j.RequestKey, j.Kind, j.Prompt).Scan(&j.ID, &j.CreatedAt)
+	err := r.db.QueryRowContext(ctx, `INSERT INTO generation_jobs(shot_id,request_key,kind,prompt,brief_version) SELECT $1,$2,$3,$4,b.version FROM storyboard_shots s JOIN projects p ON p.id=s.project_id JOIN briefs b ON b.project_id=p.id WHERE s.id=$1 AND (p.output_type IN ('','mixed') OR p.output_type=$3) ON CONFLICT(request_key) DO NOTHING RETURNING id,created_at,brief_version`, j.ShotID, j.RequestKey, j.Kind, j.Prompt).Scan(&j.ID, &j.CreatedAt, &j.BriefVersion)
 	if errors.Is(err, sql.ErrNoRows) {
 		return false, nil
 	}
@@ -45,12 +45,12 @@ func (r *generationRepository) Save(ctx context.Context, j *entity.GenerationJob
 	return err
 }
 
-const generationColumns = `g.id,g.shot_id,g.request_key,g.kind,g.prompt,g.provider_id,g.status,g.outputs,g.created_at`
+const generationColumns = `g.id,g.shot_id,g.request_key,g.kind,g.prompt,g.provider_id,g.status,g.outputs,g.created_at,g.brief_version,g.accepted`
 
 func scanJob(row interface{ Scan(...any) error }) (*entity.GenerationJob, error) {
 	j := &entity.GenerationJob{}
 	var output []byte
-	err := row.Scan(&j.ID, &j.ShotID, &j.RequestKey, &j.Kind, &j.Prompt, &j.ProviderID, &j.Status, &output, &j.CreatedAt)
+	err := row.Scan(&j.ID, &j.ShotID, &j.RequestKey, &j.Kind, &j.Prompt, &j.ProviderID, &j.Status, &output, &j.CreatedAt, &j.BriefVersion, &j.Accepted)
 	if err != nil {
 		return nil, err
 	}

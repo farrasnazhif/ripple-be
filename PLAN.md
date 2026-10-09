@@ -79,8 +79,8 @@ Requirements: FR-008, FR-009, FR-010; AI-4 and AI-5.
 - [ ] For global-only impact without an explicit linked part, show the reason and request manual revision rather than silently changing unrelated text.
 - [ ] Reassemble proposals from parts and assert that every unaffected part remains byte-identical. Reject empty or invalid output and offer manual editing.
 - [ ] Provide revision notes for traditional shots and revised prompts for AI shots.
-- [ ] Implement `refine`, `switch` to AI with a reviewed draft prompt, and `keep`.
-- [ ] Persist decision, actor, timestamp, reason, and new version reference. Refine/switch append a version; keep records a decision without creating one.
+- [ ] Implement `refine` with a reviewed prompt and `keep` with a reason.
+- [ ] Persist decision, actor, timestamp, reason, and new version reference. Refine append a version; keep records a decision without creating one.
 - [ ] Save decision and version changes in one database transaction; reject duplicate decisions and stale version submissions.
 - [ ] Reject a new change while affected shots still have pending decisions, as required by the PRD's single-user conflict rule.
 
@@ -104,7 +104,7 @@ Done when: a fresh project can enter the same revision loop without seeded point
 
 Requirements: FR-012 and FR-013, priority P0b.
 
-- [ ] Expose a regeneration plan with decision counts by action and method, pending decisions, and avoided generations. After decisions finish, avoided generations = total shots − refine/switch shots.
+- [ ] Expose a regeneration plan with decision counts by action and method, pending decisions, and avoided generations. After decisions finish, avoided generations = total shots − refine shots.
 - [ ] Expose a project decision log linking each note, confirmed diff, affected shot, decision, and resulting version.
 - [ ] Expose per-shot handoff data: ordered versions, prior version references, reasons, actor, and timestamps. Retry data is added only if the P1 retry feature is built.
 - [x] Create the Next.js app in `../ripple-fe` with a synthetic node canvas, scenario switching, keyboard-selectable graph paths, and an inspector. It uses React Query, Axios, and shadcn/ui.
@@ -190,4 +190,18 @@ If live ChatGPT or Higgsfield access is unavailable, use manual entry and seeded
 - [x] Verify PostgreSQL ownership, immutable source text, storyboard concurrency boundaries, and duplicate job claims; frontend types/lint/build and node regression checks.
 - [ ] CSV storyboard import, revision/version workflow, token ledger, durable R2 output archival, webhook/background polling, provider reconciliation UI, and live provider validation.
 
-This completes the initial project flow; it does not complete the director-note impact/revision acceptance scenarios in the PRD.
+The original implementation notes above describe the earlier flow. The updated implementation below supersedes its source/summary locking behavior.
+
+## Implemented summary and impact workflow — 10 October 2026
+
+- [x] Migration 25: brief snapshots, stable requirements, shot links, persisted changes/decisions, accepted media and final output history.
+- [x] Editable brief/summary modals, multiple references, removal with archive access, ChatGPT summary refinement, and reviewed manual fallback.
+- [x] Choose images or video after summary; review a ChatGPT-drafted or manual plan before saving.
+- [x] Calculate local/global/deleted requirement impact; narrative-only edits request manual review.
+- [x] Wide media review modal with real preview, version thumbnails, same-prompt regeneration, edited-prompt refinement, acceptance and keep-with-reason.
+- [x] Group completed versions into clip/image nodes; connect accepted inputs to final outputs.
+- [x] Combine accepted clips with FFmpeg and save final MP4 to R2; collect accepted images.
+- [x] Update four demos for the specified owner (including Brief + Brief Summary only) without paid AI calls.
+- [x] PostgreSQL workflow checks, impact/assembly assertions, frontend graph checks, type-check, lint and production build.
+- [ ] Paid live provider validation. Browser testing stopped at user request.
+- [ ] Automatic note interpretation/point extraction, token ledger, retry thresholds, CSV import, background provider reconciliation and durable archival of individual provider outputs.

@@ -1,0 +1,10 @@
+DROP TABLE project_final_outputs;
+DROP TABLE shot_decisions;
+DROP INDEX accepted_output_per_shot;
+ALTER TABLE generation_jobs DROP COLUMN accepted, DROP COLUMN brief_version;
+DROP TABLE project_changes;
+DROP TABLE shot_requirements;
+DROP TABLE brief_points;
+DROP TABLE brief_versions;
+ALTER TABLE brief_attachments DROP COLUMN removed;
+ALTER TABLE projects DROP COLUMN output_type;

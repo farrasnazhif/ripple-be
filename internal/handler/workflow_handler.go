@@ -63,6 +63,7 @@ func (h *WorkflowHandler) Submit(w http.ResponseWriter, r *http.Request) {
 	}
 	var input struct {
 		Kind       string `json:"kind"`
+		Prompt     string `json:"prompt"`
 		RequestKey string `json:"request_key"`
 	}
 	if err := helpers.ReadJSON(r, &input); err != nil {
@@ -73,7 +74,7 @@ func (h *WorkflowHandler) Submit(w http.ResponseWriter, r *http.Request) {
 		helpers.ErrorResponse(w, 400, "invalid request key")
 		return
 	}
-	j, err := h.jobs.Submit(r.Context(), helpers.UserIDFromContext(r), chi.URLParam(r, "projectID"), chi.URLParam(r, "shotID"), input.Kind, input.RequestKey)
+	j, err := h.jobs.Submit(r.Context(), helpers.UserIDFromContext(r), chi.URLParam(r, "projectID"), chi.URLParam(r, "shotID"), input.Kind, input.RequestKey, input.Prompt)
 	if err != nil {
 		workflowError(w, err)
 		return
@@ -106,11 +107,11 @@ func workflowError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, entity.ErrNotFound):
 		helpers.ErrorResponse(w, 404, "project, shot or generation not found")
-	case errors.Is(err, service.ErrInvalidStoryboard), errors.Is(err, service.ErrInvalidGeneration), errors.Is(err, service.ErrNoBriefText):
+	case errors.Is(err, service.ErrInvalidReview), errors.Is(err, service.ErrFinalNotReady), errors.Is(err, service.ErrInvalidStoryboard), errors.Is(err, service.ErrInvalidGeneration), errors.Is(err, service.ErrNoBriefText):
 		helpers.ErrorResponse(w, 400, err.Error())
 	case errors.Is(err, repository.ErrWorkflowConflict), errors.Is(err, repository.ErrGenerationConflict):
 		helpers.ErrorResponse(w, 409, err.Error())
-	case errors.Is(err, service.ErrGenerationUnavailable):
+	case errors.Is(err, service.ErrVideoAssembly), errors.Is(err, service.ErrStorageUnavailable), errors.Is(err, service.ErrGenerationUnavailable):
 		helpers.ErrorResponse(w, 503, err.Error())
 	default:
 		helpers.ErrorResponse(w, 502, "Could not complete the request. Reload the project before retrying.")

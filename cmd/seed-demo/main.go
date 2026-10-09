@@ -36,10 +36,11 @@ var demos = []demoProject{
 	{key: "draft", name: "DEMO 1 — Brief draft", description: "Start here: Raw Brief only. Review the uploaded reference, then generate or manually confirm a summary.", brief: "DEMO SOURCE: Launch a nature-inspired campaign for a new reusable water bottle. Audience: people who enjoy weekend walks. Tone: calm and optimistic. Deliverables: a landscape image and a five-second video. Preserve natural greens and warm morning light. This draft has no confirmed summary, storyboard or generated media."},
 	{key: "images", name: "DEMO 2 — Image campaign", description: "Raw Brief → confirmed summary → storyboard → two sample image outputs. Open each node to understand the saved inputs and results.", brief: "DEMO SOURCE: Create two landscape campaign images for a nature-inspired product launch. Shot 1 establishes a peaceful outdoor setting. Shot 2 presents a bold graphic interpretation of the same palette. Use greens, warm sunlight and a clean composition. These demo outputs are locally drawn illustrations, not Higgsfield generations.", summary: "Two-image nature campaign with a calm outdoor establishing shot and a graphic companion image. Keep warm morning light, greens and clean composition. DEMO: sample illustrations stand in for generated outputs.", shots: []demoShot{{"Outdoor setting", "DEMO SAMPLE: A calm outdoor establishing composition with warm sunlight and layered green hills.", []string{"image"}}, {"Graphic companion", "DEMO SAMPLE: A graphic landscape composition in warm greens and gold, with open space for campaign copy.", []string{"image"}}}},
 	{key: "mixed", name: "DEMO 3 — Mixed media and failed job", description: "Raw Brief → summary → storyboard → image and video branches. A failed video attempt is retained alongside its successful sample replacement.", brief: "DEMO SOURCE: Create an image and a short video for each of two nature-themed scenes. Scene 1 introduces a garden with warm light. Scene 2 focuses on flowers and gentle motion. Keep images and videos under their original storyboard shots. Demonstrate a failed video attempt followed by a successful attempt. DEMO: images are drawn locally and videos use the public-domain MDN flower sample; no provider was called.", summary: "Two nature-themed storyboard scenes, each with image and video deliverables. Retain failed generation history and successful replacements. DEMO: local illustrations and the MDN flower clip are sample media, not AI outputs.", shots: []demoShot{{"Garden introduction", "DEMO SAMPLE: Introduce a sunlit garden with a calm, natural composition. The local illustration and flower clip are placeholders.", []string{"image", "video"}}, {"Flower detail", "DEMO SAMPLE: Focus on flowers and gentle motion in warm light. The public-domain flower clip demonstrates the video output player.", []string{"image", "video"}}}, failed: true},
+	{key: "summary", name: "DEMO 4 — Brief and summary only", description: "Two-node starting point: review the source brief and its confirmed summary, then choose images or video when you are ready.", brief: "DEMO SOURCE: Launch a reusable water bottle campaign for weekend hikers. Audience: adults who enjoy short outdoor adventures. Tone: calm, practical and optimistic. Use natural greens, warm morning light and a clean composition with space for campaign copy. Deliverables will be chosen after the brief summary is reviewed. Avoid unsupported product claims. This demo has no image plan, storyboard, generation jobs or final output.", summary: "DEMO CONFIRMED SUMMARY: A reusable bottle campaign for weekend hikers, using a calm and practical tone, natural greens, warm morning light, and open space for copy. Avoid unsupported product claims. Image or video output has not yet been selected; review this summary and confirm the requirements before continuing."},
 }
 
 func main() {
-	user := flag.String("user", "", "existing user UUID who will own the three demo projects")
+	user := flag.String("user", "", "existing user UUID who will own the four demo projects")
 	mediaDir := flag.String("media-dir", "../ripple-fe/public/demo-assets", "frontend public directory for sample media")
 	flag.Parse()
 	if !regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`).MatchString(*user) {
@@ -48,7 +49,7 @@ func main() {
 	if _, err := os.Stat(filepath.Join(*mediaDir, "flower.mp4")); err != nil {
 		log.Fatal("download the MDN flower sample to the media directory first; see README")
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 	db, err := database.New(database.Config{Addr: os.Getenv("DB_ADDR"), MaxOpenConns: 3, MaxIdleConns: 3, MaxIdleTime: "15m"})
 	if err != nil {
@@ -60,6 +61,9 @@ func main() {
 		log.Fatal("configure R2 before seeding reference attachments")
 	}
 	if err = seed(ctx, db, storage, *user, *mediaDir); err != nil {
+		log.Fatal(err)
+	}
+	if err = seedReviews(ctx, db, storage, *user); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -154,6 +158,10 @@ func seed(ctx context.Context, db *sql.DB, storage *r2.Client, user, mediaDir st
 		if _, err = tx.ExecContext(ctx, `INSERT INTO brief_attachments(brief_id,object_key,file_name,content_type,size_bytes,status)VALUES($1,$2,$3,'image/png',$4,'completed')`, briefID, objectKey, "DEMO-reference.png", size); err != nil {
 			return err
 		}
+		if _, err = tx.ExecContext(ctx, `INSERT INTO brief_versions(brief_id,version,raw_text,summary,attachments,actor_id) SELECT b.id,b.version,b.raw_text,COALESCE(b.summary,''),COALESCE((SELECT jsonb_agg(id) FROM brief_attachments WHERE brief_id=b.id AND status='completed'),'[]'),b.user_id FROM briefs b WHERE b.id=$1 ON CONFLICT(brief_id,version) DO NOTHING`, briefID); err != nil {
+			return err
+		}
+
 		for position, shot := range demo.shots {
 			var shotID string
 			if err = tx.QueryRowContext(ctx, `INSERT INTO storyboard_shots(project_id,position,title,prompt)VALUES($1,$2,$3,$4)RETURNING id`, projectID, position+1, shot.title, shot.prompt).Scan(&shotID); err != nil {

@@ -66,7 +66,7 @@ flowchart LR
 - **Chi** — HTTP router
 - **PostgreSQL** — database
 - **Cloudflare R2** — private brief attachments
-- **ChatGPT/OpenAI API** — brief-summary drafts and planned text operations
+- **ChatGPT/OpenAI API** — brief summaries, summary refinements, and reviewed plan drafts
 - **Higgsfield API** — image/video generation with persisted job history
 - **Swagger** — API documentation
 - **golang-jwt** — JWT authentication
@@ -163,7 +163,11 @@ See [`.envrc.example`](.envrc.example) for all available variables.
 
 ## Project workflow
 
-Apply migration 24 (`migrate ... up`) before using storyboard/generation endpoints. On the project canvas, open Raw Brief, generate or write a summary, review it, and confirm. Open Brief Summary to enter the storyboard shots. Save the storyboard, then open its node to explicitly generate images or videos for individual shots. Confirmed summary text is locked after saving shots; raw text is captured once. Each explicit generation is retained as a new history entry; failed jobs remain visible.
+Apply migrations through 25 (`migrate ... up`) before using storyboard/generation endpoints. Open Brief to edit source text/references and save a version. Generate a ChatGPT summary or edit one manually. Open Brief Summary, confirm requirements and choose images or video. Review a manual or ChatGPT-drafted image plan/storyboard, link local requirements, and save it. Generate outputs per shot, inspect versions in the wide review modal, refine or keep with a reason, and accept the chosen version. Requirement edits show affected and unchanged shots; source-only edits conservatively request review.
+
+Create the final from the plan modal after accepting all shots and resolving changes. Images form a collection; videos are combined in storyboard order and stored in R2. Install **FFmpeg and ffprobe** (`brew install ffmpeg` on macOS) for video assembly; the Docker runtime includes them. Final videos retain audio, use 1280×720/30fps, and add silence to silent clips. A final is saved only if the brief and accepted selection still match after assembly. Individual clips are limited to 250 MiB and five minutes during assembly. Set `DEMO_ASSET_DIR` if demo files live elsewhere; `/demo-assets/` local files are disabled when `ENV=production`.
+
+Review endpoints (authenticated and owner-scoped): `GET /projects/{id}/review`, `PUT /projects/{id}/brief`, `PUT /projects/{id}/output-type`, `PUT /projects/{id}/shots/{shot}/requirements`, `POST /projects/{id}/shots/{shot}/decisions`, `POST /projects/{id}/summary/refine`, `POST /projects/{id}/plan/draft`, and `POST /projects/{id}/final`. Brief edits require `expected_version`; stale edits are rejected. Keep decisions require a reason.
 
 Generation POSTs are not automatically retried. The frontend keeps the same request key for an uncertain HTTP response, and PostgreSQL prevents duplicate claims and overlapping active jobs of the same type for a shot. A provider timeout or process crash before saving a provider ID leaves `unknown`/`submitting`; reconcile it against the provider dashboard before any further submission. Polling resumes in the project page after refresh; no worker or webhook runs while the page is closed. Output URLs currently remain provider-hosted and may expire; archive them before production use. No paid live generation was run during implementation.
 
@@ -171,9 +175,9 @@ Verified provider contracts: [OpenAI image inputs](https://developers.openai.com
 
 R2 upload troubleshooting: `File uploads are temporarily unavailable` means the running API has no configured R2 client. Check that its launch process exports all four R2 variables; settings in a file do not configure an already-running process. The development bucket CORS policy allows the configured `FRONTEND_URL` to make GET, PUT and HEAD requests with Content-Type, exposing ETag. Update the allowed origin if you change frontend hosts or ports. See [Cloudflare CORS guidance](https://developers.cloudflare.com/r2/buckets/cors/). A live signed PUT/preflight/HEAD/delete diagnostic passed on 10 October 2026; the browser modal itself was not exercised in that check.
 
-## Three project-flow demos
+## Four project-flow demos
 
-`make seed-demo USER_ID=<existing-user-uuid>` creates three owned DEMO projects. The seed is transactional and safe to rerun: existing demo projects and any edits to them are preserved. Apply migrations through 24 first and configure R2. Run it from this repository; it writes generated illustration assets to `../ripple-fe/public/demo-assets` and stores one verified private reference image in R2 for each project. Other users' projects are untouched.
+`make seed-demo USER_ID=<existing-user-uuid>` creates four owned DEMO projects. Initial project creation is transactional. The review enrichment creates versions, decisions and finals afterward; reruns preserve existing review fixtures and user edits. Apply migrations through 25 first and configure R2. Run it from this repository; it writes generated illustration assets to `../ripple-fe/public/demo-assets` and stores one verified private reference image in R2 for each project. Other users' projects are untouched.
 
 Before first use, place the MDN CC0 flower sample at `../ripple-fe/public/demo-assets/flower.mp4`:
 
@@ -186,9 +190,11 @@ make seed-demo USER_ID=2b90fbea-4a24-475f-a653-794298b5e5cc
 | Demo | Visible canvas | What to inspect |
 | --- | --- | --- |
 | DEMO 1 — Brief draft | Raw Brief only | Original brief and uploaded reference; manually confirm a summary to advance |
-| DEMO 2 — Image campaign | Raw Brief → Brief Summary → Storyboard → two image outputs | Shot prompts, image generation history, output modals |
-| DEMO 3 — Mixed media and failed job | Raw Brief → Brief Summary → Storyboard → two image and two video branches | Retained failed video attempt and successful sample replacement; image/video output players |
+| DEMO 2 — Accepted image collection | Brief → Summary → Image Plan → two images → Final Images | Refined versions, linked requirements, accepted selection and final gallery |
+| DEMO 3 — Video change impact | Brief → Summary → Storyboard → two clips → Final Video | Lighting change affects Clip 1 only; refined version awaits approval, Clip 2 is unchanged, earlier final remains playable |
 
-Seeded media and summaries are explicitly synthetic samples; no ChatGPT or Higgsfield generation is called. The illustrations are drawn locally; the video is the MDN CC0 flower clip. Sample output paths use the frontend's `/demo-assets/` directory. Only terminal job states are seeded, so opening the projects does not poll fake provider IDs. Clicking a real Generate action afterwards still uses the normal paid provider integration. These demos cover the currently implemented flow, not the unfinished director-note revision workflow.
+| DEMO 4 — Brief and summary only | Brief → Brief Summary | Review the summary, then choose image or video; no plan, media, or final output is seeded |
 
-To remove the demos, delete only the three `DEMO 1/2/3` project records for this owner (dependent briefs, attachments, shots and jobs cascade), then remove their `demo/<user-id>/<project-id>/reference.png` objects from R2. Avoid deleting real projects by name pattern alone.
+Seeded media and summaries are explicitly synthetic samples; no ChatGPT or Higgsfield generation is called. The illustrations are drawn locally; the video is the MDN CC0 flower clip. Sample output paths use the frontend's `/demo-assets/` directory. Only terminal job states are seeded, so opening the projects does not poll fake provider IDs. Clicking a real Generate action afterwards still uses the normal paid provider integration. These demos include explicit requirement changes, selective impact, preserved media versions, acceptance, and a real combined final MP4 in R2. Prepared revisions use sample media, not AI-generated changes.
+
+To remove the demos, delete only the four `DEMO 1/2/3/4` project records for this owner (dependent briefs, attachments, shots and jobs cascade), then remove their `demo/<user-id>/<project-id>/reference.png` objects from R2. Avoid deleting real projects by name pattern alone.

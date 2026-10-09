@@ -48,10 +48,29 @@ func (c *Client) SummarizeBrief(ctx context.Context, rawText string, references 
 		}
 		input = []map[string]any{{"role": "user", "content": content}}
 	}
+	return c.respond(ctx, input, "Summarize the creative brief concisely in English. Preserve concrete constraints and uncertainties. Do not invent details.")
+}
+func (c *Client) DraftPlan(ctx context.Context, summary, kind string) ([]entity.StoryboardShot, error) {
+	text, _, err := c.respond(ctx, summary, "Return only a JSON array of 1 to 8 objects with title and prompt strings for a "+kind+" production plan. Use only this confirmed brief. Each prompt must preserve the brief constraints. Do not add unrequested claims. No markdown fences.")
+	if err != nil {
+		return nil, err
+	}
+	var shots []entity.StoryboardShot
+	err = json.Unmarshal([]byte(text), &shots)
+	return shots, err
+}
+func (c *Client) RefineSummary(ctx context.Context, summary, instructions string) (string, error) {
+	text, _, err := c.respond(ctx, "Current summary:\n"+summary+"\nRequested adjustments:\n"+instructions, "Refine this creative brief summary in English using the requested adjustments. Preserve all unrelated constraints. Return the revised summary only.")
+	return text, err
+}
+func (c *Client) respond(ctx context.Context, input any, instructions string) (string, entity.TokenUsage, error) {
+	if c.key == "" || c.model == "" {
+		return "", entity.TokenUsage{}, ErrNotConfigured
+	}
 	body, err := json.Marshal(map[string]any{
 		"model":        c.model,
 		"store":        false,
-		"instructions": "Summarize the creative brief concisely in English. Preserve concrete constraints and uncertainties. Do not invent details.",
+		"instructions": instructions,
 		"input":        input,
 	})
 	if err != nil {

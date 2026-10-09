@@ -20,11 +20,26 @@ This PRD guides the design, implementation, testing, and demo of Ripple for the 
 
 Evidence labels: [VERIFIED FACT], [USER-PROVIDED CLAIM], [INFERENCE], [ASSUMPTION], [PROPOSED REQUIREMENT], and [DATA NOT AVAILABLE]. The wider PENS guidebook, judging weights, submission format, and pitch duration/language were not available in the sources.
 
+## Confirmed product flow — 10 October 2026
+
+The primary features are **Brief Summary** and **Change Impact Tracking**. The following user decisions supersede older research proposals below wherever they conflict.
+
+- `/project` displays owned project cards. `/project/[projectId]` displays the node canvas beside the shared sidebar and beneath the project-name header. Initially only Brief exists; later nodes require saved outputs.
+- Brief and Brief Summary open editable modals: edit/delete content, add/remove references, review requirements, save a new immutable snapshot, or refine the summary with ChatGPT. Earlier source text and references remain accessible in history.
+- After confirming the summary, choose **Images** or **Video**. Images use a reviewed image plan; video uses a reviewed storyboard. Plans can be manually entered or drafted with ChatGPT. Requirements have stable keys and global/local scope; local requirements are explicitly linked to shots.
+- Brief edits produce stored requirement diffs and deterministic affected/unchanged shot lists with reasons. Global requirements affect every shot; local requirements affect linked shots. Narrative-only edits conservatively request review instead of claiming no impact. Requirement deletion retains historical shot links for impact calculation.
+- Each shot/output type has one canvas node showing real media, brief version, approval/review state, and version count. The wide clip/image modal shows saved summary, current linked requirements, impact reasons, Generate Again, Adjust/Refine, Mark as Accepted, and selectable version thumbnails. Earlier media is preserved.
+- **Refine** submits an explicitly approved edited prompt as another version. **Keep** preserves the selected version with a required reason. Accepted affected outputs cannot enter a new final until their impact is resolved.
+- Accepted images form a final collection. Accepted clips are normalized and combined in storyboard order with FFmpeg; the resulting MP4 is stored privately in R2. Final output snapshots retain selected job IDs and brief version. Earlier finals remain accessible.
+- The four synthetic demos show a raw brief, a reviewed/refined image collection, a video project whose local lighting revision affects Clip 1 while preserving Clip 2, and a two-node Brief → Brief Summary project. Samples are labeled and never call paid generation providers during seeding.
+
+Current limits: automatic requirement extraction/director-note interpretation, CSV import, token ledger, retry thresholds, and exact text-part proposals remain separate work. Requirement links and refinements are producer-confirmed. Individual generation URLs remain provider-hosted; final videos and source attachments use R2.
+
 ## 2. Executive summary
 
-Ripple preserves existing creative work when a brief or direction changes. It turns a brief into traceable brief points, links storyboard shots to those points, and shows which shots a director's note affects, why, and which parts may need revision. The producer chooses refine, switch, or keep; Ripple stores the decision and its reason.
+Ripple preserves existing creative work when a brief or direction changes. It turns a brief into traceable brief points, links storyboard shots to those points, and shows which shots a director's note affects, why, and which parts may need revision. The producer chooses refine or keep; Ripple stores the decision and its reason.
 
-The main page at `/project` lists the signed-in user's projects and creates new projects in a modal with title, description, and multiple brief files; `/project/[projectId]` holds that project's **node canvas**. The shared header shows the page or project name, the account dropdown sits in the sidebar, and node details open in a modal. Briefs, brief points, shots, changes, decisions, and generation results appear as connected nodes. Next.js renders and edits the graph; the Go backend stores authoritative relationships and calculates impact. ChatGPT through the OpenAI API handles text understanding and drafting, including brief summaries. Higgsfield generates producer-approved images and videos. Cloudflare R2 stores original brief attachments; PostgreSQL stores raw text and attachment metadata. These architecture and interface choices come from Farras [USER-PROVIDED CLAIM]. The first frontend implementation lives in the sibling `../ripple-fe` project. Project records and linked briefs are now persisted and owner-scoped. The initial canvas shows only Raw Brief; downstream nodes appear only when the corresponding project output exists. Brief Summary currently appears after a nonempty summary is saved; persisted storyboard, clip, and generation flows remain planned.
+The main page at `/project` lists the signed-in user's projects and creates new projects in a modal with title, description, and multiple brief files; `/project/[projectId]` holds that project's **node canvas**. The shared header shows the page or project name, the account dropdown sits in the sidebar, and node details open in a modal. Briefs, brief points, shots, changes, decisions, and generation results appear as connected nodes. Next.js renders and edits the graph; the Go backend stores authoritative relationships and calculates impact. ChatGPT through the OpenAI API handles text understanding and drafting, including brief summaries. Higgsfield generates producer-approved images and videos. Cloudflare R2 stores original brief attachments; PostgreSQL stores raw text and attachment metadata. These architecture and interface choices come from Farras [USER-PROVIDED CLAIM]. The first frontend implementation lives in the sibling `../ripple-fe` project. Project records and linked briefs are now persisted and owner-scoped. The initial canvas shows only Raw Brief; downstream nodes appear only when the corresponding project output exists. Brief Summary currently appears after a nonempty summary is saved; Saved image plans/storyboards, media versions, acceptance, change impact tracking, and final outputs are implemented.
 
 OZU reports that shots made for an old direction become stale, late changes cause rework, retries consume budget, and knowledge sits with a few people [VERIFIED FACT: slides 13, 14, 21, 27]. OZU already has a brief-to-storyboard app [VERIFIED FACT: mentor interview], so Ripple focuses on the moment of change.
 
@@ -55,11 +70,11 @@ G1–G7 are MVP goals. G5 requires measurement; it does not promise token saving
 | G3 | Preserve unaffected content | Byte-for-byte comparison |
 | G4 | Let producers use the flow without training | Tasks T1–T3 completed unaided |
 | G5 | Measure token use against baseline B1 | Tokens per change and amortized over repeated changes |
-| G6 | Show avoided generations | Total shots minus refine/switch shots |
+| G6 | Show avoided generations | Total shots minus refine shots |
 | G7 | Enable handoff without the producer | Task T5 completed unaided |
 | G8 | Reduce real OZU rework time | Future pilot on a real project |
 
-MVP non-goals: generating a storyboard or prompt from scratch (OZU already does this); automatic image/video quality scoring; automatic choice between AI and traditional production; multi-user collaboration or real-time editing; OZU internal integration; and use of client footage. The frontend supports email/password registration and login. Registration activates the account immediately and returns a JWT; workspace and brief screens require a valid JWT before rendering. There is no OTP, email delivery, Google OAuth, or PayPal billing flow.
+MVP non-goals: automatic image/video quality scoring; automatic choice between AI and traditional production; multi-user collaboration or real-time editing; OZU internal integration; and use of client footage. The frontend supports email/password registration and login. Registration activates the account immediately and returns a JWT; workspace and brief screens require a valid JWT before rendering. There is no OTP, email delivery, Google OAuth, or PayPal billing flow.
 
 ## 5. Users and stakeholders
 
@@ -87,7 +102,7 @@ P0 is the core flow, P0b follows the first mentor test, and P1 is optional.
 | US-07 | See the status of every shot | P0 |
 | US-08 | Inspect the source and reason for a flagged shot | P0 |
 | US-09 | Compare shot content before and after a proposal | P0 |
-| US-10 | Choose refine, switch, or keep per affected shot | P0 |
+| US-10 | Choose refine or keep per affected shot | P0 |
 | US-11 | Read all previous shot versions | P0 |
 | US-12 | See the regeneration plan and expected rework | P0b |
 | US-13 | Read a decision log and handoff view | P0b |
@@ -106,7 +121,7 @@ P0 is the core flow, P0b follows the first mentor test, and P1 is optional.
 | F-03 | Director-note interpretation | P0 | Reviewable ChatGPT draft |
 | F-04 | Impact propagation and shot status | P0 | Deterministic Go logic |
 | F-05 | Partial update proposal | P0 | Deterministic replacement plus targeted ChatGPT drafting |
-| F-06 | Refine/switch/keep decisions | P0 | Producer controls the choice |
+| F-06 | Refine/keep decisions | P0 | Producer controls the choice |
 | F-07 | Shot versions with actor and reason | P0 | Append-only history |
 | F-08 | ChatGPT token ledger | P0 | Every text-model attempt |
 | F-09 | Regeneration plan | P0b | After decisions |
@@ -130,7 +145,7 @@ P2: OZU integration, budget/deadline retry limits, and multi-user collaboration.
 | J4 | Correct shot links | Display unlinked shots | Unconfirmed links never drive propagation |
 | J5 | Paste director note | Propose a point diff or mark ambiguity | Failed ChatGPT call retries once, then offers manual diff |
 | J6 | Confirm diff | Calculate impact, status, and reasons | Reject stale old values |
-| J7 | Review affected shot and choose action | Store decision; append a version for refine/switch | Invalid proposals require manual editing; a decision cannot be applied twice |
+| J7 | Review affected shot and choose action | Store decision; append a version for refine | Invalid proposals require manual editing; a decision cannot be applied twice |
 | J8 | Open log or handoff view | Display complete history | Read-only |
 | J9 | Approve image/video prompt for an AI shot | Submit Higgsfield job and show status/result on the shot | Failure keeps previous work; retry requires an explicit action |
 
@@ -150,10 +165,10 @@ All ChatGPT output is reviewed before use. A Higgsfield job is submitted only af
 | FR-006 | Note interpretation | P0 | ChatGPT receives the note and point list, not the full brief, and returns key/old/new/confidence diffs or an ambiguity reason. Do not apply unconfirmed diffs. Retry once on failure, then allow manual diff. Reject mismatched old values. |
 | FR-007 | Propagation | P0 | Deterministically flag shots with confirmed direct links to changed keys or applicable global keys. Pending applicable diffs produce `Ambiguous` unless another confirmed diff already makes the shot `Needs update`. Every flagged shot includes a point and reason, including a global-only reason. |
 | FR-008 | Partial proposals | P0 | Replace explicit old values in affected parts; send remaining parts in one batch ChatGPT call per change. Produce revision notes for traditional shots and revised prompts for AI shots. Reject empty or unrelated changes; unaffected parts remain byte-identical. |
-| FR-009 | Producer decisions | P0 | Refine with reviewed text, switch to AI with a reviewed prompt, or keep. Store actor and time; reject a second decision for the same shot/change. |
-| FR-010 | Versions | P0 | Refine/switch append a shot version linked to parent and change; keep records a decision without a new version. Earlier versions cannot be edited. |
+| FR-009 | Producer decisions | P0 | Refine with a reviewed prompt or keep with a recorded reason. Store actor and time; reject a second decision for the same shot/change. |
+| FR-010 | Versions | P0 | Refine append a shot version linked to parent and change; keep records a decision without a new version. Earlier versions cannot be edited. |
 | FR-011 | Token ledger | P0 | Record purpose, model, input/output tokens, latency, change, success/failure for every ChatGPT call, including failures. Display accurate totals and call counts. |
-| FR-012 | Regeneration plan | P0b | Count shots by action/method; avoided generations = total shots − refine/switch shots after decisions are complete. |
+| FR-012 | Regeneration plan | P0b | Count shots by action/method; avoided generations = total shots − refine shots after decisions are complete. |
 | FR-013 | Decision log and handoff | P0b | Show change, diff, affected shots, decisions, actors, and per-shot versions without an AI call. |
 | FR-014 | Retry log | P1 | Record shot, version, failed point, note, actor. Mark a discussion threshold after N repeated point failures, M shot retries, or the same failure across K shots. |
 | FR-015 | New brief diff | P1 | Extract v2, match stable keys deterministically, and ask ChatGPT only about unmatched points. Feed confirmed diff into FR-006. |
@@ -178,7 +193,7 @@ Only confirmed direct links or explicit global scope cause propagation. Similari
 | Interpretation | Show confidence and require human review; set a low-confidence threshold after observing fixture output (D8). |
 | Propagation | A changed global point flags an applicable shot without a direct text link, with the message “Applies to every shot; not mentioned directly in the description.” |
 | Partial proposals | ChatGPT sees only an affected part, diff, and one neighboring part when string replacement is insufficient. |
-| Decisions and versions | Refine/switch/keep are producer choices. Undo is an append-only restore version (P1). Versions retain change, decision, actor, and time. |
+| Decisions and versions | Refine/keep are producer choices. Undo is an append-only restore version (P1). Versions retain change, decision, actor, and time. |
 | Media generation | ChatGPT drafts text; Higgsfield generates only approved image/video jobs. Keep provider state and media separate from ChatGPT token usage. |
 
 ## 11. Business rules and edge cases
@@ -226,7 +241,7 @@ ChatGPT handles language tasks. Go handles validation, propagation, status, coun
 | AI-2 | Split and link shot text | All shot descriptions/prompts + point list → parts | Once per import, batched; concatenation must exactly match source |
 | AI-3 | Interpret director note | Note + point list → diff or ambiguity | Once per change; old values must match stored points |
 | AI-4 | Rewrite affected parts | Part text + diff + one neighbor → replacement text | One batch per change for parts not handled by direct replacement |
-| AI-5 | Draft a switch prompt | Old description + confirmed points → prompt | Per producer-approved switch; reject empty output |
+| AI-5 | Refine a generation prompt | Existing prompt + confirmed changes → revised prompt | Producer approves each refinement; reject empty output |
 | AI-6 | Summarize brief | Text brief → short review summary | Once per brief version; producer confirms before saving |
 
 Structured text output is validated. A failed text call is retried once and then falls back to manual entry. File contents are never claimed as interpreted until a type-specific extraction path exists.
@@ -255,7 +270,7 @@ retry(id, shot_id, shot_version_id, point_key, note, decided_by, created_at)    
 project_settings(project_id, retry_n, retry_m, retry_k)                         P1
 ```
 
-The current backend has owner-scoped `projects`, a `briefs` draft table tied to existing users, and `brief_attachments`; the remaining target tables are planned. Brief drafts are not yet linked to projects. Existing `sessions`, `prds`, and `messages` are a separate old document workspace and must not be repurposed silently. Brief source text and completed attachment bytes are immutable. Older shot versions are append-only. Stable point keys link across versions; point-to-shot links belong to the versioned parts. A graph node/edge is a projection of stored domain data, not an independent source of truth. The synthetic graph endpoint is demo data only.
+The current backend has owner-scoped `projects`, a `briefs` draft table tied to existing users, and `brief_attachments`; migration 25 adds brief snapshots, requirements, shot links, changes, decisions, accepted generation versions and final output snapshots. Briefs are linked to their owned projects. Existing `sessions`, `prds`, and `messages` are a separate old document workspace and must not be repurposed silently. Earlier brief snapshots and completed attachment bytes are immutable; edits append a new brief version. Older shot versions are append-only. Stable point keys link across versions; point-to-shot links belong to the versioned parts. A graph node/edge is a projection of stored domain data, not an independent source of truth. The synthetic graph endpoint is demo data only.
 
 Higgsfield's REST API accepts separate image and video model paths and asynchronous request IDs. The Go client can submit image/video prompts and poll status; the production job API requires a persisted, owner-checked decision and shot version. The starter models are Soul 2 for images and Seedance 2.0 for video; final model choice, account access, and hosting remain open (D4). The private R2 bucket uses short-lived signed PUT/GET URLs after ownership checks. No vector database, agent orchestration, or microservices are needed. Polling suffices for MVP job status; add a queue only if actual load warrants it.
 
@@ -269,12 +284,12 @@ The node canvas is inside the project detail page. S1–S8 below are focus panel
 | S2 Storyboard | Review shots and links | Shot, method, linked parts; confirm links | Prompt to import; explain rejected rows |
 | S3 Change | Interpret note | Old/new diff and confidence; confirm | Ask for clarification on ambiguity |
 | S4 Update board | See impact | Group shots by direct/global-only reason, status, regeneration plan, token line | “No shots affected” when applicable |
-| S5 Shot detail | Choose action | Source, reason, before/after, refine/switch/keep | Manual edit if proposal is invalid |
+| S5 Shot detail | Choose action | Source, reason, before/after, refine/keep | Manual edit if proposal is invalid |
 | S6 Handoff | Read one shot's history | Versions, reason, actor, retry | “No changes yet” |
 | S7 Decision log | Read project history | Change, diff, shot, decision; open shot | “No changes yet” |
 | S8 Generation | Run approved media job | Prompt, model, status, image/video result; explicit retry | “Not generated”; show job failure without losing earlier work |
 
-The canvas supports pan/zoom. Every node and edge can be selected by keyboard, focus remains visible, and details never rely on color alone. A linear shot list offers alternate navigation. Manually adding an edge changes a stored link only after validation and confirmation. Use the UI terms “Brief points,” “Needs update,” “Unchanged,” and “Ambiguous.” Refine keeps the method; switch changes it to AI; keep preserves the shot.
+The canvas supports pan/zoom. Every node and edge can be selected by keyboard, focus remains visible, and details never rely on color alone. A linear shot list offers alternate navigation. Manually adding an edge changes a stored link only after validation and confirmation. Use the UI terms “Brief points,” “Needs update,” “Unchanged,” and “Ambiguous.” Refine creates another media version; keep preserves the selected version with a reason.
 
 ## 16. Acceptance criteria and test plan
 
@@ -410,7 +425,7 @@ The following choices guide the PRD. Open items require team validation; D4 and 
 
 | ID | Question | Recommendation or current decision | Status |
 | --- | --- | --- | --- |
-| D1 | Does Ripple create the storyboard? | Accept an external brief and storyboard; compile brief points | Applied; team confirmation pending |
+| D1 | Does Ripple create the storyboard? | After a confirmed summary, choose images or video; review a manual or ChatGPT-drafted image plan/storyboard before saving | Confirmed by Farras, 10 October 2026 |
 | D2 | Is change input a note or a new brief version? | Director note in P0; new brief version in P1 | Applied; team confirmation pending |
 | D3 | Retry thresholds N, M, K? | N=2, K=3; set M from mentor input; editable per project | Open |
 | D4 | Stack, AI, storage, hosting? | Go/Chi and PostgreSQL backend; Next.js frontend; ChatGPT/OpenAI for text; Higgsfield for media; R2 for attachments | Stack/providers set by Farras; model access and hosting open |
@@ -426,7 +441,7 @@ The following choices guide the PRD. Open items require team validation; D4 and 
 | --- | --- | --- | --- |
 | OZU slide 23: shifting direction, stale work | G1/G2; see affected shots and reasons | FR-006/007 | T-02/T-06; S1/S2 Time demo |
 | OZU slide 27: update, do not restart; retain versions | G3; preserve work | FR-008/010 | T-04/T-05; diffs and history |
-| OZU slide 25: creative decisions remain human | G2; creative control | FR-006/009 | T-06/T-11; refine/switch/keep |
+| OZU slide 25: creative decisions remain human | G2; creative control | FR-006/009 | T-06/T-11; refine/keep |
 | OZU slides 21/23: retries, handoff | G6/G7; know cost and preserve context | FR-012/013/014 | T-10/T-11; Cost and People demos |
 | OZU slide 15: chat loses context | G2; persistent brief context | FR-001–005 | T-08/T-09; brief and storyboard |
 | PENS: AI Token Efficiency | G5; measurable use | FR-011 | T-12; ledger and B1 |
@@ -472,4 +487,4 @@ Required fixture: the Laju brief with four points, 12 shots, S1/S2/S3 notes, and
 - [ ] T-15 summary does not replace the original brief
 - [ ] T-16 R2 attachments are owner-protected and retrievable
 
-Resolve ChatGPT/OpenAI API model/access, Higgsfield model/access, and demo hosting (D4, R-09, R-10). Outside this hackathon scope: storyboard creation from a brief, automatic media-quality scores, automatic method recommendation, vector database, agents, OZU-app integration, and video analysis.
+Resolve ChatGPT/OpenAI API model/access, Higgsfield model/access, and demo hosting (D4, R-09, R-10). Outside this hackathon scope: automatic media-quality scores, automatic method recommendation, vector database, agents, OZU-app integration, and video analysis.

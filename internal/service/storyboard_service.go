@@ -39,6 +39,16 @@ func (s *StoryboardService) Create(ctx context.Context, user, project, summary s
 		return ErrInvalidStoryboard
 	}
 	for _, shot := range shots {
+		seen := map[string]bool{}
+		if len(shot.RequirementKeys) > 50 {
+			return ErrInvalidStoryboard
+		}
+		for _, key := range shot.RequirementKeys {
+			if !pointKey.MatchString(key) || seen[key] {
+				return ErrInvalidStoryboard
+			}
+			seen[key] = true
+		}
 		if strings.TrimSpace(shot.Title) == "" || len([]rune(shot.Title)) > 200 || strings.TrimSpace(shot.Prompt) == "" || len([]rune(shot.Prompt)) > 10000 {
 			return ErrInvalidStoryboard
 		}

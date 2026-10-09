@@ -13,6 +13,7 @@ import (
 )
 
 type Config struct {
+	Review          *handler.ReviewHandler
 	Workflow        *handler.WorkflowHandler
 	FrontendURL     string
 	JWTSecret       string
@@ -64,6 +65,17 @@ func New(cfg Config, authHandler *handler.AuthHandler, userHandler *handler.User
 			r.With(auth, apiLimiter).Post("/projects/{projectID}/shots/{shotID}/generations", cfg.Workflow.Submit)
 			r.With(auth).Get("/projects/{projectID}/generations", cfg.Workflow.ListJobs)
 			r.With(auth).Get("/projects/{projectID}/generations/{jobID}", cfg.Workflow.GetJob)
+		}
+
+		if cfg.Review != nil {
+			r.With(auth).Get("/projects/{projectID}/review", cfg.Review.Get)
+			r.With(auth, apiLimiter).Put("/projects/{projectID}/brief", cfg.Review.Edit)
+			r.With(auth, apiLimiter).Put("/projects/{projectID}/output-type", cfg.Review.SetType)
+			r.With(auth, apiLimiter).Put("/projects/{projectID}/shots/{shotID}/requirements", cfg.Review.Link)
+			r.With(auth, apiLimiter).Post("/projects/{projectID}/shots/{shotID}/decisions", cfg.Review.Decide)
+			r.With(auth, apiLimiter).Post("/projects/{projectID}/plan/draft", cfg.Review.Draft)
+			r.With(auth, apiLimiter).Post("/projects/{projectID}/summary/refine", cfg.Review.Draft)
+			r.With(auth, apiLimiter).Post("/projects/{projectID}/final", cfg.Review.Final)
 		}
 
 		r.Route("/briefs", func(r chi.Router) {
