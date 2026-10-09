@@ -620,7 +620,7 @@ const docTemplate = `{
                 "password": {
                     "type": "string",
                     "maxLength": 72,
-                    "minLength": 15
+                    "minLength": 8
                 },
                 "username": {
                     "type": "string",

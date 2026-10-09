@@ -47,7 +47,7 @@ definitions:
         type: string
       password:
         maxLength: 72
-        minLength: 15
+        minLength: 8
         type: string
       username:
         maxLength: 100
