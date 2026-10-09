@@ -35,7 +35,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_farrasnazhif_go-starter_internal_dto_request.Login"
+                            "$ref": "#/definitions/github_com_farrasnazhif_ripple-be_internal_dto_request.Login"
                         }
                     }
                 ],
@@ -43,7 +43,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_farrasnazhif_go-starter_internal_dto_response.UserWithToken"
+                            "$ref": "#/definitions/github_com_farrasnazhif_ripple-be_internal_dto_response.UserWithToken"
                         }
                     },
                     "400": {
@@ -72,7 +72,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_farrasnazhif_go-starter_internal_dto_request.SendOTP"
+                            "$ref": "#/definitions/github_com_farrasnazhif_ripple-be_internal_dto_request.SendOTP"
                         }
                     }
                 ],
@@ -106,7 +106,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_farrasnazhif_go-starter_internal_dto_request.VerifyOTP"
+                            "$ref": "#/definitions/github_com_farrasnazhif_ripple-be_internal_dto_request.VerifyOTP"
                         }
                     }
                 ],
@@ -114,7 +114,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_farrasnazhif_go-starter_internal_dto_response.UserWithToken"
+                            "$ref": "#/definitions/github_com_farrasnazhif_ripple-be_internal_dto_response.UserWithToken"
                         }
                     },
                     "400": {
@@ -143,7 +143,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_farrasnazhif_go-starter_internal_dto_request.Register"
+                            "$ref": "#/definitions/github_com_farrasnazhif_ripple-be_internal_dto_request.Register"
                         }
                     }
                 ],
@@ -176,7 +176,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/github_com_farrasnazhif_go-starter_internal_dto_response.Subscription"
+                            "$ref": "#/definitions/github_com_farrasnazhif_ripple-be_internal_dto_response.Subscription"
                         }
                     },
                     "401": {
@@ -210,7 +210,7 @@ const docTemplate = `{
                         "name": "body",
                         "in": "body",
                         "schema": {
-                            "$ref": "#/definitions/github_com_farrasnazhif_go-starter_internal_dto_request.CancelSubscription"
+                            "$ref": "#/definitions/github_com_farrasnazhif_ripple-be_internal_dto_request.CancelSubscription"
                         }
                     }
                 ],
@@ -269,7 +269,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_farrasnazhif_go-starter_internal_dto_response.UserBilling"
+                            "$ref": "#/definitions/github_com_farrasnazhif_ripple-be_internal_dto_response.UserBilling"
                         }
                     },
                     "401": {
@@ -297,7 +297,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_farrasnazhif_go-starter_internal_dto_response.User"
+                            "$ref": "#/definitions/github_com_farrasnazhif_ripple-be_internal_dto_response.User"
                         }
                     },
                     "401": {
@@ -308,7 +308,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "github_com_farrasnazhif_go-starter_internal_dto_request.CancelSubscription": {
+        "github_com_farrasnazhif_ripple-be_internal_dto_request.CancelSubscription": {
             "type": "object",
             "properties": {
                 "reason": {
@@ -316,7 +316,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_farrasnazhif_go-starter_internal_dto_request.Login": {
+        "github_com_farrasnazhif_ripple-be_internal_dto_request.Login": {
             "type": "object",
             "required": [
                 "email",
@@ -331,7 +331,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_farrasnazhif_go-starter_internal_dto_request.Register": {
+        "github_com_farrasnazhif_ripple-be_internal_dto_request.Register": {
             "type": "object",
             "required": [
                 "email",
@@ -354,7 +354,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_farrasnazhif_go-starter_internal_dto_request.SendOTP": {
+        "github_com_farrasnazhif_ripple-be_internal_dto_request.SendOTP": {
             "type": "object",
             "required": [
                 "email"
@@ -365,7 +365,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_farrasnazhif_go-starter_internal_dto_request.VerifyOTP": {
+        "github_com_farrasnazhif_ripple-be_internal_dto_request.VerifyOTP": {
             "type": "object",
             "required": [
                 "code",
@@ -380,7 +380,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_farrasnazhif_go-starter_internal_dto_response.Subscription": {
+        "github_com_farrasnazhif_ripple-be_internal_dto_response.Subscription": {
             "type": "object",
             "properties": {
                 "approve_url": {
@@ -394,7 +394,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_farrasnazhif_go-starter_internal_dto_response.User": {
+        "github_com_farrasnazhif_ripple-be_internal_dto_response.User": {
             "type": "object",
             "properties": {
                 "credits": {
@@ -417,7 +417,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_farrasnazhif_go-starter_internal_dto_response.UserBilling": {
+        "github_com_farrasnazhif_ripple-be_internal_dto_response.UserBilling": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -443,7 +443,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_farrasnazhif_go-starter_internal_dto_response.UserWithToken": {
+        "github_com_farrasnazhif_ripple-be_internal_dto_response.UserWithToken": {
             "type": "object",
             "properties": {
                 "credits": {
@@ -486,7 +486,7 @@ var SwaggerInfo = &swag.Spec{
 	Host:             "localhost:8080",
 	BasePath:         "/api/v1",
 	Schemes:          []string{"http", "https"},
-	Title:            "Go Starter API",
+	Title:            "Ripple API",
 	Description:      "User authentication, profile management, and PayPal billing API",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,

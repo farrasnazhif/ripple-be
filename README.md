@@ -1,4 +1,27 @@
-# Go Starter
+# Ripple backend
+
+The current backend contains account/billing infrastructure plus the first Ripple features: a synthetic dependency graph, deterministic impact preview, brief drafts, ChatGPT brief-summary drafts, and private Cloudflare R2 attachments. Higgsfield image/video submission and status are implemented as a server-side client; generation jobs are not yet connected to shot decisions. The Next.js frontend is in the sibling `../ripple-fe` project. See [PRD.md](PRD.md) and [PLAN.md](PLAN.md) for the target product and remaining work.
+
+## Ripple endpoints
+
+| Method | Path | Auth | Purpose |
+| --- | --- | --- | --- |
+| GET | `/api/v1/demo/graph?scenario=s1` | No | Labeled synthetic Laju graph (`s1`, `s2`, `s3`) |
+| POST | `/api/v1/impact/preview` | No | Calculate impact from submitted points, confirmed links, shots, and diffs |
+| POST | `/api/v1/briefs/` | JWT | Create a brief draft with `raw_text` (can be empty for attachment-first input) |
+| GET | `/api/v1/briefs/{briefID}` | JWT | Read owned brief text and confirmed summary |
+| POST | `/api/v1/briefs/{briefID}/summary/draft` | JWT | Ask ChatGPT for a reviewable text summary |
+| PUT | `/api/v1/briefs/{briefID}/summary` | JWT | Confirm or edit summary; body: `{"summary":"..."}` |
+| POST | `/api/v1/briefs/{briefID}/attachments` | JWT | Create a signed R2 PUT URL; body: `file_name`, `content_type`, `size_bytes` |
+| POST | `/api/v1/briefs/{briefID}/attachments/{attachmentID}/complete` | JWT | Verify uploaded object before marking it saved |
+| GET | `/api/v1/briefs/{briefID}/attachments` | JWT | List completed attachments |
+| GET | `/api/v1/briefs/{briefID}/attachments/{attachmentID}/download` | JWT | Get a short-lived signed R2 GET URL |
+
+For an attachment: create a brief, request an upload URL, PUT bytes to that URL with the returned `Content-Type`, then call `complete`. Files are private, limited to 25 MiB, and stored in R2; PostgreSQL stores their metadata. Configure the R2 bucket CORS to allow PUT from the frontend origin with `Content-Type`. The API currently saves arbitrary file types but only summarizes `raw_text`; it does not extract text or visual content from attachments yet.
+
+Set `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, and `R2_BUCKET` in the server environment. Set `OPENAI_API_KEY` and `OPENAI_MODEL` to enable summary drafts. Keep `HF_API_KEY` server-side for the future generation-job endpoints. Apply migrations 19 and 20 before using brief endpoints. The standalone synthetic Go demo runs with `go run ./cmd/demo` on port 8081 without PostgreSQL.
+
+The default database is now `ripple-be`. An existing PostgreSQL Docker volume initialized with the old database name will not be renamed automatically; create the new database and migrate data as needed before switching `DB_ADDR`.
 
 ## Clean Architecture
 
@@ -12,7 +35,7 @@ flowchart LR
     Client -->|HTTP| Handler
     Handler -->|DTO| Service
     Service -->|Entity| Repository
-    Repository -->|SQLC| PostgreSQL
+    Repository -->|SQL| PostgreSQL
 ```
 
 ## Layer Responsibilities
@@ -30,6 +53,9 @@ flowchart LR
 - **Go 1.25+** — language
 - **Chi** — HTTP router
 - **PostgreSQL** — database
+- **Cloudflare R2** — private brief attachments
+- **ChatGPT/OpenAI API** — brief-summary drafts and planned text operations
+- **Higgsfield API** — image/video generation client (job endpoints pending)
 - **Resend** — transactional email (OTP)
 - **PayPal** — subscription billing
 - **Swagger** — API documentation
@@ -46,54 +72,9 @@ flowchart LR
 - Swagger/OpenAPI docs at `/api/v1/swagger/`
 - Clean architecture (handler → service → repository → entity)
 
-## Project Structure
+## Project structure
 
-```
-cmd/
-└── api/
-    └── main.go                 # Composition root
-internal/
-├── entity/                     # Domain entities & errors
-│   ├── user.go
-│   ├── otp.go
-│   └── errors.go
-├── dto/
-│   ├── request/                # Request DTOs
-│   │   ├── auth.go
-│   │   └── billing.go
-│   └── response/               # Response DTOs
-│       ├── auth.go
-│       ├── user.go
-│       └── billing.go
-├── repository/                 # Data access (PostgreSQL)
-│   ├── user_repository.go
-│   ├── otp_repository.go
-│   └── billing_repository.go
-├── service/                    # Business logic
-│   ├── auth_service.go
-│   ├── user_service.go
-│   └── billing_service.go
-├── handler/                    # HTTP handlers
-│   ├── auth_handler.go
-│   ├── user_handler.go
-│   └── billing_handler.go
-├── middleware/                 # HTTP middleware
-│   ├── auth.go
-│   ├── cors.go
-│   └── ratelimit.go
-├── router/                     # Route definitions
-│   └── router.go
-├── helpers/                    # Shared utilities
-│   ├── json.go
-│   ├── context.go
-│   └── validator.go
-├── database/                   # DB connection
-│   └── postgres.go
-├── mailer/                     # Email service
-│   └── resend.go
-└── paypal/                     # PayPal client
-    └── client.go
-```
+`cmd/api` wires the server; `cmd/demo` serves the database-free synthetic graph. Features have a separate file in each required layer: `internal/handler`, `internal/service`, `internal/repository`, `internal/entity`, and `internal/dto`. External clients live in `internal/openai`, `internal/higgsfield`, and `internal/r2`. SQL migrations live in `cmd/migrate/migrations`.
 
 ## Getting Started
 
@@ -107,39 +88,7 @@ internal/
 
 ### Setup
 
-**1. Clone and rename the project**
-
-```bash
-git clone https://github.com/farrasnazhif/go-starter.git my-project
-cd my-project
-```
-
-**2. Replace module name**
-
-Replace `github.com/yourname/my-project` with your actual module path.
-
-```bash
-OLD_MODULE="github.com/farrasnazhif/go-starter"
-NEW_MODULE="github.com/yourname/my-project"
-```
-
-macOS:
-```bash
-find . -type f -name "*.go" -exec sed -i '' "s|$OLD_MODULE|$NEW_MODULE|g" {} +
-sed -i '' "s|$OLD_MODULE|$NEW_MODULE|g" go.mod
-```
-
-Linux:
-```bash
-find . -type f -name "*.go" -exec sed -i "s|$OLD_MODULE|$NEW_MODULE|g" {} +
-sed -i "s|$OLD_MODULE|$NEW_MODULE|g" go.mod
-```
-
-**3. (Optional) Rename the database**
-
-Edit `POSTGRES_DB` in `docker-compose.yml` to your project name.
-
-**4. Copy environment config**
+**1. Copy environment config**
 
 ```bash
 cp .envrc.example .envrc
@@ -147,19 +96,19 @@ cp .envrc.example .envrc
 direnv allow .
 ```
 
-**5. Start PostgreSQL**
+**2. Start PostgreSQL**
 
 ```bash
 docker compose up -d
 ```
 
-**6. Run migrations**
+**3. Run migrations**
 
 ```bash
 make migrate-up
 ```
 
-**7. Run the server**
+**4. Run the server**
 
 ```bash
 go run cmd/api/main.go

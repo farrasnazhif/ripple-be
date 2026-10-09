@@ -3,8 +3,8 @@ package service
 import (
 	"context"
 
-	"github.com/farrasnazhif/go-starter/internal/dto/response"
-	"github.com/farrasnazhif/go-starter/internal/repository"
+	"github.com/farrasnazhif/ripple-be/internal/dto/response"
+	"github.com/farrasnazhif/ripple-be/internal/repository"
 )
 
 type UserService interface {

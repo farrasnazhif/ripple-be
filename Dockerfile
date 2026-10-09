@@ -2,7 +2,7 @@
 FROM golang:1.25.4 as builder
 WORKDIR /app
 COPY . .
-RUN CGO_ENABLED=0 G000S=linux go build -a -installsuffix cgo -o api cmd/api/*.go
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o api cmd/api/*.go
 
 # the run stage
 FROM scratch

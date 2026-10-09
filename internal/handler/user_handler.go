@@ -3,9 +3,9 @@ package handler
 import (
 	"net/http"
 
-	_ "github.com/farrasnazhif/go-starter/internal/dto/response"
-	"github.com/farrasnazhif/go-starter/internal/helpers"
-	"github.com/farrasnazhif/go-starter/internal/service"
+	_ "github.com/farrasnazhif/ripple-be/internal/dto/response"
+	"github.com/farrasnazhif/ripple-be/internal/helpers"
+	"github.com/farrasnazhif/ripple-be/internal/service"
 )
 
 type UserHandler struct {

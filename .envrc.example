@@ -2,7 +2,7 @@ export ADDR=:8080
 export ENV=development
 
 # Database
-export DB_ADDR=postgres://admin:adminpassword@localhost/go-starter?sslmode=disable
+export DB_ADDR=postgres://admin:adminpassword@localhost/ripple-be?sslmode=disable
 
 # JWT
 export JWT_SECRET=your-secret-key
@@ -22,3 +22,16 @@ export PAYPAL_PRO_PLAN_ID=
 export PAYPAL_WEBHOOK_ID=
 export PAYPAL_RETURN_URL=http://localhost:3000/billing/success
 export PAYPAL_CANCEL_URL=http://localhost:3000/billing/cancel
+
+# ChatGPT text processing
+export OPENAI_API_KEY=
+export OPENAI_MODEL=
+
+# Higgsfield image and video generation (server-side client)
+export HF_API_KEY=
+
+# Cloudflare R2 private brief attachments
+export R2_ACCOUNT_ID=
+export R2_ACCESS_KEY_ID=
+export R2_SECRET_ACCESS_KEY=
+export R2_BUCKET=

@@ -3,7 +3,7 @@ package helpers
 import (
 	"net/http"
 
-	"github.com/farrasnazhif/go-starter/internal/middleware"
+	"github.com/farrasnazhif/ripple-be/internal/middleware"
 )
 
 func UserIDFromContext(r *http.Request) string {

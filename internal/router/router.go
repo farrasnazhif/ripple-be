@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/farrasnazhif/go-starter/internal/handler"
-	mw "github.com/farrasnazhif/go-starter/internal/middleware"
-	"github.com/farrasnazhif/go-starter/internal/repository"
+	"github.com/farrasnazhif/ripple-be/internal/handler"
+	mw "github.com/farrasnazhif/ripple-be/internal/middleware"
+	"github.com/farrasnazhif/ripple-be/internal/repository"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
@@ -20,7 +20,7 @@ type Config struct {
 	RateLimitWindow time.Duration
 }
 
-func New(cfg Config, authHandler *handler.AuthHandler, userHandler *handler.UserHandler, billingHandler *handler.BillingHandler, userRepo repository.UserRepository) http.Handler {
+func New(cfg Config, authHandler *handler.AuthHandler, userHandler *handler.UserHandler, billingHandler *handler.BillingHandler, briefHandler *handler.BriefHandler, userRepo repository.UserRepository) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(mw.CORS(cfg.FrontendURL))
@@ -38,6 +38,8 @@ func New(cfg Config, authHandler *handler.AuthHandler, userHandler *handler.User
 		})
 
 		r.Get("/swagger/*", httpSwagger.WrapHandler)
+		r.Get("/demo/graph", handler.DemoGraph)
+		r.With(apiLimiter).Post("/impact/preview", handler.PreviewImpact)
 
 		r.Route("/auth", func(r chi.Router) {
 			r.With(registerLimiter).Post("/register", authHandler.Register)
@@ -50,6 +52,19 @@ func New(cfg Config, authHandler *handler.AuthHandler, userHandler *handler.User
 			r.Use(auth)
 			r.Get("/me", userHandler.GetProfile)
 			r.Get("/billing", userHandler.GetBilling)
+		})
+
+		r.Route("/briefs", func(r chi.Router) {
+			r.Use(auth)
+			r.Use(apiLimiter)
+			r.Post("/", briefHandler.Create)
+			r.Get("/{briefID}", briefHandler.Get)
+			r.Post("/{briefID}/summary/draft", briefHandler.DraftSummary)
+			r.Put("/{briefID}/summary", briefHandler.ConfirmSummary)
+			r.Post("/{briefID}/attachments", briefHandler.StartAttachment)
+			r.Get("/{briefID}/attachments", briefHandler.ListAttachments)
+			r.Post("/{briefID}/attachments/{attachmentID}/complete", briefHandler.CompleteAttachment)
+			r.Get("/{briefID}/attachments/{attachmentID}/download", briefHandler.DownloadAttachment)
 		})
 
 		// Webhook - no auth required

@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/farrasnazhif/go-starter/internal/entity"
+	"github.com/farrasnazhif/ripple-be/internal/entity"
 )
 
 type BillingRepository interface {

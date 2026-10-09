@@ -6,7 +6,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/farrasnazhif/go-starter/internal/entity"
+	"github.com/farrasnazhif/ripple-be/internal/entity"
 )
 
 var queryTimeout = 5 * time.Second

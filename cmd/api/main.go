@@ -6,17 +6,19 @@ import (
 	"os"
 	"time"
 
-	"github.com/farrasnazhif/go-starter/internal/database"
-	_ "github.com/farrasnazhif/go-starter/docs"
-	"github.com/farrasnazhif/go-starter/internal/handler"
-	"github.com/farrasnazhif/go-starter/internal/mailer"
-	"github.com/farrasnazhif/go-starter/internal/paypal"
-	"github.com/farrasnazhif/go-starter/internal/repository"
-	"github.com/farrasnazhif/go-starter/internal/router"
-	"github.com/farrasnazhif/go-starter/internal/service"
+	_ "github.com/farrasnazhif/ripple-be/docs"
+	"github.com/farrasnazhif/ripple-be/internal/database"
+	"github.com/farrasnazhif/ripple-be/internal/handler"
+	"github.com/farrasnazhif/ripple-be/internal/mailer"
+	"github.com/farrasnazhif/ripple-be/internal/openai"
+	"github.com/farrasnazhif/ripple-be/internal/paypal"
+	"github.com/farrasnazhif/ripple-be/internal/r2"
+	"github.com/farrasnazhif/ripple-be/internal/repository"
+	"github.com/farrasnazhif/ripple-be/internal/router"
+	"github.com/farrasnazhif/ripple-be/internal/service"
 )
 
-//	@title			Go Starter API
+//	@title			Ripple API
 //	@version		1.0
 //	@description	User authentication, profile management, and PayPal billing API
 
@@ -37,7 +39,7 @@ func main() {
 
 	// Database
 	db, err := database.New(database.Config{
-		Addr:         getEnv("DB_ADDR", "postgres://admin:adminpassword@localhost/go-starter?sslmode=disable"),
+		Addr:         getEnv("DB_ADDR", "postgres://admin:adminpassword@localhost/ripple-be?sslmode=disable"),
 		MaxOpenConns: 30,
 		MaxIdleConns: 30,
 		MaxIdleTime:  "15m",
@@ -52,6 +54,13 @@ func main() {
 	userRepo := repository.NewUserRepository(db)
 	otpRepo := repository.NewOTPRepository(db)
 	billingRepo := repository.NewBillingRepository(db)
+	briefRepo := repository.NewBriefRepository(db)
+	var briefStorage service.BriefStorage
+	if storage, err := r2.New(os.Getenv("R2_ACCOUNT_ID"), os.Getenv("R2_ACCESS_KEY_ID"), os.Getenv("R2_SECRET_ACCESS_KEY"), os.Getenv("R2_BUCKET")); err == nil {
+		briefStorage = storage
+	} else {
+		log.Println("R2 attachment storage is not configured")
+	}
 
 	// PayPal
 	paypalClient := paypal.NewClient(paypal.Config{
@@ -71,11 +80,17 @@ func main() {
 	authSvc := service.NewAuthService(userRepo, otpRepo, m, jwtSecret, env)
 	userSvc := service.NewUserService(userRepo)
 	billingSvc := service.NewBillingService(billingRepo, userRepo, paypalClient)
+	var briefSummarizer service.BriefSummarizer
+	if key, model := os.Getenv("OPENAI_API_KEY"), os.Getenv("OPENAI_MODEL"); key != "" && model != "" {
+		briefSummarizer = openai.New(key, model)
+	}
+	briefSvc := service.NewBriefService(briefRepo, briefStorage, briefSummarizer)
 
 	// Handlers
 	authHandler := handler.NewAuthHandler(authSvc)
 	userHandler := handler.NewUserHandler(userSvc)
 	billingHandler := handler.NewBillingHandler(billingSvc)
+	briefHandler := handler.NewBriefHandler(briefSvc)
 
 	// Router
 	mux := router.New(router.Config{
@@ -84,7 +99,7 @@ func main() {
 		RateLimit:       30,
 		RegisterLimit:   5,
 		RateLimitWindow: time.Minute,
-	}, authHandler, userHandler, billingHandler, userRepo)
+	}, authHandler, userHandler, billingHandler, briefHandler, userRepo)
 
 	// Server
 	srv := &http.Server{

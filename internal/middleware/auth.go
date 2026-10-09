@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/farrasnazhif/go-starter/internal/repository"
-	"github.com/farrasnazhif/go-starter/internal/service"
+	"github.com/farrasnazhif/ripple-be/internal/repository"
+	"github.com/farrasnazhif/ripple-be/internal/service"
 )
 
 type contextKey string

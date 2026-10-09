@@ -1,11 +1,11 @@
 basePath: /api/v1
 definitions:
-  github_com_farrasnazhif_go-starter_internal_dto_request.CancelSubscription:
+  github_com_farrasnazhif_ripple-be_internal_dto_request.CancelSubscription:
     properties:
       reason:
         type: string
     type: object
-  github_com_farrasnazhif_go-starter_internal_dto_request.Login:
+  github_com_farrasnazhif_ripple-be_internal_dto_request.Login:
     properties:
       email:
         type: string
@@ -15,7 +15,7 @@ definitions:
     - email
     - password
     type: object
-  github_com_farrasnazhif_go-starter_internal_dto_request.Register:
+  github_com_farrasnazhif_ripple-be_internal_dto_request.Register:
     properties:
       email:
         maxLength: 225
@@ -32,14 +32,14 @@ definitions:
     - password
     - username
     type: object
-  github_com_farrasnazhif_go-starter_internal_dto_request.SendOTP:
+  github_com_farrasnazhif_ripple-be_internal_dto_request.SendOTP:
     properties:
       email:
         type: string
     required:
     - email
     type: object
-  github_com_farrasnazhif_go-starter_internal_dto_request.VerifyOTP:
+  github_com_farrasnazhif_ripple-be_internal_dto_request.VerifyOTP:
     properties:
       code:
         type: string
@@ -49,7 +49,7 @@ definitions:
     - code
     - email
     type: object
-  github_com_farrasnazhif_go-starter_internal_dto_response.Subscription:
+  github_com_farrasnazhif_ripple-be_internal_dto_response.Subscription:
     properties:
       approve_url:
         type: string
@@ -58,7 +58,7 @@ definitions:
       subscription_id:
         type: string
     type: object
-  github_com_farrasnazhif_go-starter_internal_dto_response.User:
+  github_com_farrasnazhif_ripple-be_internal_dto_response.User:
     properties:
       credits:
         type: integer
@@ -73,7 +73,7 @@ definitions:
       username:
         type: string
     type: object
-  github_com_farrasnazhif_go-starter_internal_dto_response.UserBilling:
+  github_com_farrasnazhif_ripple-be_internal_dto_response.UserBilling:
     properties:
       created_at:
         type: string
@@ -90,7 +90,7 @@ definitions:
       username:
         type: string
     type: object
-  github_com_farrasnazhif_go-starter_internal_dto_response.UserWithToken:
+  github_com_farrasnazhif_ripple-be_internal_dto_response.UserWithToken:
     properties:
       credits:
         type: integer
@@ -111,7 +111,7 @@ host: localhost:8080
 info:
   contact: {}
   description: User authentication, profile management, and PayPal billing API
-  title: Go Starter API
+  title: Ripple API
   version: "1.0"
 paths:
   /auth/login:
@@ -125,14 +125,14 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/github_com_farrasnazhif_go-starter_internal_dto_request.Login'
+          $ref: '#/definitions/github_com_farrasnazhif_ripple-be_internal_dto_request.Login'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_farrasnazhif_go-starter_internal_dto_response.UserWithToken'
+            $ref: '#/definitions/github_com_farrasnazhif_ripple-be_internal_dto_response.UserWithToken'
         "400":
           description: Bad Request
       summary: Login user
@@ -149,7 +149,7 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/github_com_farrasnazhif_go-starter_internal_dto_request.SendOTP'
+          $ref: '#/definitions/github_com_farrasnazhif_ripple-be_internal_dto_request.SendOTP'
       produces:
       - application/json
       responses:
@@ -171,14 +171,14 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/github_com_farrasnazhif_go-starter_internal_dto_request.VerifyOTP'
+          $ref: '#/definitions/github_com_farrasnazhif_ripple-be_internal_dto_request.VerifyOTP'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_farrasnazhif_go-starter_internal_dto_response.UserWithToken'
+            $ref: '#/definitions/github_com_farrasnazhif_ripple-be_internal_dto_response.UserWithToken'
         "400":
           description: Bad Request
       summary: Verify OTP and activate account
@@ -195,7 +195,7 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/github_com_farrasnazhif_go-starter_internal_dto_request.Register'
+          $ref: '#/definitions/github_com_farrasnazhif_ripple-be_internal_dto_request.Register'
       produces:
       - application/json
       responses:
@@ -216,7 +216,7 @@ paths:
         in: body
         name: body
         schema:
-          $ref: '#/definitions/github_com_farrasnazhif_go-starter_internal_dto_request.CancelSubscription'
+          $ref: '#/definitions/github_com_farrasnazhif_ripple-be_internal_dto_request.CancelSubscription'
       produces:
       - application/json
       responses:
@@ -239,7 +239,7 @@ paths:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/github_com_farrasnazhif_go-starter_internal_dto_response.Subscription'
+            $ref: '#/definitions/github_com_farrasnazhif_ripple-be_internal_dto_response.Subscription'
         "401":
           description: Unauthorized
         "500":
@@ -273,7 +273,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_farrasnazhif_go-starter_internal_dto_response.UserBilling'
+            $ref: '#/definitions/github_com_farrasnazhif_ripple-be_internal_dto_response.UserBilling'
         "401":
           description: Unauthorized
       security:
@@ -290,7 +290,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_farrasnazhif_go-starter_internal_dto_response.User'
+            $ref: '#/definitions/github_com_farrasnazhif_ripple-be_internal_dto_response.User'
         "401":
           description: Unauthorized
       security:

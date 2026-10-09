@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/farrasnazhif/go-starter/internal/dto/response"
-	"github.com/farrasnazhif/go-starter/internal/paypal"
-	"github.com/farrasnazhif/go-starter/internal/repository"
+	"github.com/farrasnazhif/ripple-be/internal/dto/response"
+	"github.com/farrasnazhif/ripple-be/internal/paypal"
+	"github.com/farrasnazhif/ripple-be/internal/repository"
 )
 
 const (

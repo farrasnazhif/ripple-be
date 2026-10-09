@@ -6,16 +6,16 @@ import (
 	"log"
 	"os"
 
-	"github.com/farrasnazhif/go-starter/internal/database"
-	"github.com/farrasnazhif/go-starter/internal/entity"
-	"github.com/farrasnazhif/go-starter/internal/repository"
+	"github.com/farrasnazhif/ripple-be/internal/database"
+	"github.com/farrasnazhif/ripple-be/internal/entity"
+	"github.com/farrasnazhif/ripple-be/internal/repository"
 	"golang.org/x/crypto/bcrypt"
 )
 
 func main() {
 	addr := os.Getenv("DB_ADDR")
 	if addr == "" {
-		addr = "postgres://admin:adminpassword@localhost/go-starter?sslmode=disable"
+		addr = "postgres://admin:adminpassword@localhost/ripple-be?sslmode=disable"
 	}
 
 	db, err := database.New(database.Config{Addr: addr, MaxOpenConns: 3, MaxIdleConns: 3, MaxIdleTime: "15m"})

@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/farrasnazhif/go-starter/internal/dto/request"
-	"github.com/farrasnazhif/go-starter/internal/dto/response"
-	"github.com/farrasnazhif/go-starter/internal/entity"
-	"github.com/farrasnazhif/go-starter/internal/repository"
+	"github.com/farrasnazhif/ripple-be/internal/dto/request"
+	"github.com/farrasnazhif/ripple-be/internal/dto/response"
+	"github.com/farrasnazhif/ripple-be/internal/entity"
+	"github.com/farrasnazhif/ripple-be/internal/repository"
 	"github.com/golang-jwt/jwt"
 	"golang.org/x/crypto/bcrypt"
 )

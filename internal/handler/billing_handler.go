@@ -4,10 +4,10 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/farrasnazhif/go-starter/internal/dto/request"
-	_ "github.com/farrasnazhif/go-starter/internal/dto/response"
-	"github.com/farrasnazhif/go-starter/internal/helpers"
-	"github.com/farrasnazhif/go-starter/internal/service"
+	"github.com/farrasnazhif/ripple-be/internal/dto/request"
+	_ "github.com/farrasnazhif/ripple-be/internal/dto/response"
+	"github.com/farrasnazhif/ripple-be/internal/helpers"
+	"github.com/farrasnazhif/ripple-be/internal/service"
 )
 
 type BillingHandler struct {
