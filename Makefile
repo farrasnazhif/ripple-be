@@ -24,3 +24,11 @@ gen-docs:
 .PHONY: seed
 seed: 
 	@go run cmd/migrate/seed/main.go
+
+.PHONY: run
+run:
+	@set -a; . ./.envrc; set +a; go run ./cmd/api
+
+.PHONY: seed-demo
+seed-demo:
+	@set -a; . ./.envrc; set +a; go run ./cmd/seed-demo -user $(USER_ID)

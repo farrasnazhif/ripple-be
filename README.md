@@ -128,7 +128,7 @@ Or with hot reload:
 air
 ```
 
-Air loads `.envrc` through `.air.toml`. Restart Air after changing this configuration or credentials. With `go run`, source `.envrc` first.
+Air explicitly sources and exports `.envrc` in its startup command, including after rebuilding. Restart Air once after changing `.air.toml`. Alternatively, `make run` loads `.envrc` and starts the API. With direct `go run`, source `.envrc` first.
 
 API runs on `http://localhost:8080`  
 Swagger UI at `http://localhost:8080/api/v1/swagger/`
@@ -168,3 +168,27 @@ Apply migration 24 (`migrate ... up`) before using storyboard/generation endpoin
 Generation POSTs are not automatically retried. The frontend keeps the same request key for an uncertain HTTP response, and PostgreSQL prevents duplicate claims and overlapping active jobs of the same type for a shot. A provider timeout or process crash before saving a provider ID leaves `unknown`/`submitting`; reconcile it against the provider dashboard before any further submission. Polling resumes in the project page after refresh; no worker or webhook runs while the page is closed. Output URLs currently remain provider-hosted and may expire; archive them before production use. No paid live generation was run during implementation.
 
 Verified provider contracts: [OpenAI image inputs](https://developers.openai.com/api/docs/guides/images-vision), [OpenAI file inputs](https://developers.openai.com/api/docs/guides/file-inputs), [Higgsfield Soul 2](https://open.higgsfield.ai/models/higgsfield-ai/soul/v2/standard/api-reference), [Higgsfield Seedance 2.0](https://open.higgsfield.ai/models/bytedance/seedance-2.0/text-to-video/api-reference).
+
+R2 upload troubleshooting: `File uploads are temporarily unavailable` means the running API has no configured R2 client. Check that its launch process exports all four R2 variables; settings in a file do not configure an already-running process. The development bucket CORS policy allows the configured `FRONTEND_URL` to make GET, PUT and HEAD requests with Content-Type, exposing ETag. Update the allowed origin if you change frontend hosts or ports. See [Cloudflare CORS guidance](https://developers.cloudflare.com/r2/buckets/cors/). A live signed PUT/preflight/HEAD/delete diagnostic passed on 10 October 2026; the browser modal itself was not exercised in that check.
+
+## Three project-flow demos
+
+`make seed-demo USER_ID=<existing-user-uuid>` creates three owned DEMO projects. The seed is transactional and safe to rerun: existing demo projects and any edits to them are preserved. Apply migrations through 24 first and configure R2. Run it from this repository; it writes generated illustration assets to `../ripple-fe/public/demo-assets` and stores one verified private reference image in R2 for each project. Other users' projects are untouched.
+
+Before first use, place the MDN CC0 flower sample at `../ripple-fe/public/demo-assets/flower.mp4`:
+
+```sh
+mkdir -p ../ripple-fe/public/demo-assets
+curl --fail --location https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4 -o ../ripple-fe/public/demo-assets/flower.mp4
+make seed-demo USER_ID=2b90fbea-4a24-475f-a653-794298b5e5cc
+```
+
+| Demo | Visible canvas | What to inspect |
+| --- | --- | --- |
+| DEMO 1 — Brief draft | Raw Brief only | Original brief and uploaded reference; manually confirm a summary to advance |
+| DEMO 2 — Image campaign | Raw Brief → Brief Summary → Storyboard → two image outputs | Shot prompts, image generation history, output modals |
+| DEMO 3 — Mixed media and failed job | Raw Brief → Brief Summary → Storyboard → two image and two video branches | Retained failed video attempt and successful sample replacement; image/video output players |
+
+Seeded media and summaries are explicitly synthetic samples; no ChatGPT or Higgsfield generation is called. The illustrations are drawn locally; the video is the MDN CC0 flower clip. Sample output paths use the frontend's `/demo-assets/` directory. Only terminal job states are seeded, so opening the projects does not poll fake provider IDs. Clicking a real Generate action afterwards still uses the normal paid provider integration. These demos cover the currently implemented flow, not the unfinished director-note revision workflow.
+
+To remove the demos, delete only the three `DEMO 1/2/3` project records for this owner (dependent briefs, attachments, shots and jobs cascade), then remove their `demo/<user-id>/<project-id>/reference.png` objects from R2. Avoid deleting real projects by name pattern alone.
