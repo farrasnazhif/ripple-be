@@ -175,9 +175,9 @@ Verified provider contracts: [OpenAI image inputs](https://developers.openai.com
 
 R2 upload troubleshooting: `File uploads are temporarily unavailable` means the running API has no configured R2 client. Check that its launch process exports all four R2 variables; settings in a file do not configure an already-running process. The development bucket CORS policy allows the configured `FRONTEND_URL` to make GET, PUT and HEAD requests with Content-Type, exposing ETag. Update the allowed origin if you change frontend hosts or ports. See [Cloudflare CORS guidance](https://developers.cloudflare.com/r2/buckets/cors/). A live signed PUT/preflight/HEAD/delete diagnostic passed on 10 October 2026; the browser modal itself was not exercised in that check.
 
-## Four project-flow demos
+## Five project-flow demos
 
-`make seed-demo USER_ID=<existing-user-uuid>` creates four owned DEMO projects. Initial project creation is transactional. The review enrichment creates versions, decisions and finals afterward; reruns preserve existing review fixtures and user edits. Apply migrations through 25 first and configure R2. Run it from this repository; it writes generated illustration assets to `../ripple-fe/public/demo-assets` and stores one verified private reference image in R2 for each project. Other users' projects are untouched.
+`make seed-demo USER_ID=<existing-user-uuid>` creates five owned DEMO projects. Initial project creation is transactional. The review enrichment creates versions, decisions and finals afterward; reruns preserve existing review fixtures and user edits. Apply migrations through 25 first and configure R2. Run it from this repository; it writes generated illustration assets to `../ripple-fe/public/demo-assets` and stores one verified private reference image in R2 for each project. Other users' projects are untouched.
 
 Before first use, place the MDN CC0 flower sample at `../ripple-fe/public/demo-assets/flower.mp4`:
 
@@ -195,6 +195,8 @@ make seed-demo USER_ID=2b90fbea-4a24-475f-a653-794298b5e5cc
 
 | DEMO 4 — Brief and summary only | Brief → Brief Summary | Review the summary, then choose image or video; no plan, media, or final output is seeded |
 
+| DEMO 5 — Storyboard ready | Brief → Brief Summary → Storyboard | Three planned shots, with no generations or final output |
+
 Seeded media and summaries are explicitly synthetic samples; no ChatGPT or Higgsfield generation is called. The illustrations are drawn locally; the video is the MDN CC0 flower clip. Sample output paths use the frontend's `/demo-assets/` directory. Only terminal job states are seeded, so opening the projects does not poll fake provider IDs. Clicking a real Generate action afterwards still uses the normal paid provider integration. These demos include explicit requirement changes, selective impact, preserved media versions, acceptance, and a real combined final MP4 in R2. Prepared revisions use sample media, not AI-generated changes.
 
-To remove the demos, delete only the four `DEMO 1/2/3/4` project records for this owner (dependent briefs, attachments, shots and jobs cascade), then remove their `demo/<user-id>/<project-id>/reference.png` objects from R2. Avoid deleting real projects by name pattern alone.
+To remove the demos, delete only the five `DEMO 1/2/3/4/5` project records for this owner (dependent briefs, attachments, shots and jobs cascade), then remove their `demo/<user-id>/<project-id>/reference.png` objects from R2. Avoid deleting real projects by name pattern alone.

@@ -201,7 +201,7 @@ The original implementation notes above describe the earlier flow. The updated i
 - [x] Wide media review modal with real preview, version thumbnails, same-prompt regeneration, edited-prompt refinement, acceptance and keep-with-reason.
 - [x] Group completed versions into clip/image nodes; connect accepted inputs to final outputs.
 - [x] Combine accepted clips with FFmpeg and save final MP4 to R2; collect accepted images.
-- [x] Update four demos for the specified owner (including Brief + Brief Summary only) without paid AI calls.
+- [x] Update five demos for the specified owner (including Brief + Brief Summary only and Brief + Brief Summary + Storyboard only) without paid AI calls.
 - [x] PostgreSQL workflow checks, impact/assembly assertions, frontend graph checks, type-check, lint and production build.
 - [ ] Paid live provider validation. Browser testing stopped at user request.
 - [ ] Automatic note interpretation/point extraction, token ledger, retry thresholds, CSV import, background provider reconciliation and durable archival of individual provider outputs.

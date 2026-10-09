@@ -18,7 +18,7 @@ func TestDemoIDsAreStableAndOwnerScoped(t *testing.T) {
 	}
 }
 func TestDemoFlowsAndImages(t *testing.T) {
-	counts := []int{0, 2, 4, 0}
+	counts := []int{0, 2, 4, 0, 0}
 	for i, d := range demos {
 		if len(d.name) > 100 || len(d.description) > 500 || d.brief == "" {
 			t.Fatal("invalid project fixture")
@@ -42,8 +42,16 @@ func TestDemoFlowsAndImages(t *testing.T) {
 			t.Fatal("broken demo image")
 		}
 	}
-	if len(demos) != 4 || demos[3].summary == "" || len(demos[3].shots) != 0 {
+	if len(demos) != 5 || demos[3].summary == "" || len(demos[3].shots) != 0 {
 		t.Fatal("fourth demo must contain a brief and summary only")
+	}
+	if demos[4].brief == "" || demos[4].summary == "" || len(demos[4].shots) == 0 || demos[4].failed {
+		t.Fatal("fifth demo must stop at the storyboard")
+	}
+	for _, shot := range demos[4].shots {
+		if len(shot.kinds) != 0 {
+			t.Fatal("fifth demo must not generate media")
+		}
 	}
 	if demos[0].summary != "" || !demos[2].failed {
 		t.Fatal("missing draft or failure scenario")
