@@ -30,7 +30,7 @@ func (r *reviewRepository) Get(ctx context.Context, user, project string) (*enti
  'versions',COALESCE((SELECT jsonb_agg(jsonb_build_object('version',version,'raw_text',raw_text,'summary',summary,'points',points,'attachments',attachments,'created_at',created_at) ORDER BY version DESC) FROM brief_versions WHERE brief_id=b.id),'[]'),
  'changes',COALESCE((SELECT jsonb_agg(jsonb_build_object('id',id,'brief_version',brief_version,'note',note,'diffs',diffs,'impacts',impacts,'created_at',created_at) ORDER BY created_at DESC) FROM project_changes WHERE project_id=p.id),'[]'),
  'decisions',COALESCE((SELECT jsonb_agg(jsonb_build_object('id',d.id,'shot_id',d.shot_id,'brief_version',d.brief_version,'action',d.action,'reason',d.reason,'job_id',d.job_id,'created_at',d.created_at) ORDER BY d.created_at DESC) FROM shot_decisions d JOIN storyboard_shots s ON s.id=d.shot_id WHERE s.project_id=p.id),'[]'),
- 'finals',COALESCE((SELECT jsonb_agg(jsonb_build_object('id',id,'brief_version',brief_version,'kind',kind,'job_ids',job_ids,'outputs',outputs,'object_key',object_key) ORDER BY created_at DESC) FROM project_final_outputs WHERE project_id=p.id),'[]')
+ 'finals',COALESCE((SELECT jsonb_agg(jsonb_build_object('id',id,'brief_version',brief_version,'kind',kind,'job_ids',job_ids,'outputs',outputs,'object_key',object_key,'parent_id',parent_id,'request_key',request_key,'image_index',image_index,'prompt',prompt,'reason',reason,'status',status,'accepted',accepted,'created_at',created_at) ORDER BY created_at DESC,id DESC) FROM project_final_outputs WHERE project_id=p.id),'[]')
  ) FROM projects p JOIN briefs b ON b.project_id=p.id WHERE p.id=$1 AND p.user_id=$2`, project, user).Scan(&payload)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, entity.ErrNotFound
@@ -237,10 +237,26 @@ func (r *reviewRepository) SaveFinal(ctx context.Context, user, project string, 
 	if final.BriefVersion != version {
 		return ErrWorkflowConflict
 	}
+	if err = validateFinalInputs(ctx, tx, project, final); err != nil {
+		return err
+	}
+	if _, err = tx.ExecContext(ctx, `UPDATE project_final_outputs SET accepted=false WHERE project_id=$1 AND kind=$2 AND accepted`, project, final.Kind); err != nil {
+		return err
+	}
 	ids, _ := json.Marshal(final.JobIDs)
 	outputs, _ := json.Marshal(final.Outputs)
+	if err = tx.QueryRowContext(ctx, `INSERT INTO project_final_outputs(project_id,brief_version,kind,job_ids,outputs,object_key)VALUES($1,$2,$3,$4,$5,$6)RETURNING id,created_at`, project, version, final.Kind, string(ids), string(outputs), final.ObjectKey).Scan(&final.ID, &final.CreatedAt); err != nil {
+		return err
+	}
+	final.Accepted = true
+	final.Status = "completed"
+	return tx.Commit()
+}
+
+func validateFinalInputs(ctx context.Context, tx *sql.Tx, project string, final *entity.FinalOutput) error {
+	ids, _ := json.Marshal(final.JobIDs)
 	var current []byte
-	err = tx.QueryRowContext(ctx, `SELECT COALESCE(jsonb_agg(g.id ORDER BY s.position),'[]') FROM generation_jobs g JOIN storyboard_shots s ON s.id=g.shot_id WHERE s.project_id=$1 AND g.kind=$2 AND g.accepted`, project, final.Kind).Scan(&current)
+	err := tx.QueryRowContext(ctx, `SELECT COALESCE(jsonb_agg(g.id ORDER BY s.position),'[]') FROM generation_jobs g JOIN storyboard_shots s ON s.id=g.shot_id WHERE s.project_id=$1 AND g.kind=$2 AND g.accepted`, project, final.Kind).Scan(&current)
 	if err != nil {
 		return err
 	}
@@ -267,8 +283,5 @@ func (r *reviewRepository) SaveFinal(ctx context.Context, user, project string, 
 	if unsafe || len(final.JobIDs) == 0 {
 		return ErrWorkflowConflict
 	}
-	if err = tx.QueryRowContext(ctx, `INSERT INTO project_final_outputs(project_id,brief_version,kind,job_ids,outputs,object_key)VALUES($1,$2,$3,$4,$5,$6)RETURNING id`, project, version, final.Kind, string(ids), string(outputs), final.ObjectKey).Scan(&final.ID); err != nil {
-		return err
-	}
-	return tx.Commit()
+	return nil
 }

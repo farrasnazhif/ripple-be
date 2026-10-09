@@ -29,7 +29,7 @@ func (testUserRepo) GetByID(_ context.Context, id string) (*entity.User, error) 
 }
 
 func TestWorkspaceAPIRequiresLogin(t *testing.T) {
-	mux := New(Config{Review: handler.NewReviewHandler(nil, nil, nil), Workflow: handler.NewWorkflowHandler(nil, nil), JWTSecret: "test-secret", RateLimit: 100, RegisterLimit: 100, RateLimitWindow: time.Minute}, nil, nil, nil, nil, testUserRepo{})
+	mux := New(Config{Review: handler.NewReviewHandler(nil, nil, nil, nil), Workflow: handler.NewWorkflowHandler(nil, nil), JWTSecret: "test-secret", RateLimit: 100, RegisterLimit: 100, RateLimitWindow: time.Minute}, nil, nil, nil, nil, testUserRepo{})
 	for _, path := range []string{"/api/v1/demo/graph", "/api/v1/impact/preview", "/api/v1/projects", "/api/v1/projects/", "/api/v1/briefs/storage", "/api/v1/projects/11111111-1111-1111-1111-111111111111/storyboard", "/api/v1/projects/11111111-1111-1111-1111-111111111111/generations", "/api/v1/projects/11111111-1111-1111-1111-111111111111/generations/22222222-2222-2222-2222-222222222222"} {
 		method := http.MethodGet
 		if path == "/api/v1/impact/preview" {
@@ -43,7 +43,7 @@ func TestWorkspaceAPIRequiresLogin(t *testing.T) {
 		}
 	}
 
-	for _, route := range []struct{ method, path string }{{"GET", "review"}, {"PUT", "brief"}, {"PUT", "output-type"}, {"PUT", "shots/22222222-2222-2222-2222-222222222222/requirements"}, {"POST", "shots/22222222-2222-2222-2222-222222222222/decisions"}, {"POST", "plan/draft"}, {"POST", "summary/refine"}, {"POST", "final"}} {
+	for _, route := range []struct{ method, path string }{{"GET", "review"}, {"PUT", "brief"}, {"PUT", "output-type"}, {"PUT", "shots/22222222-2222-2222-2222-222222222222/requirements"}, {"POST", "shots/22222222-2222-2222-2222-222222222222/decisions"}, {"POST", "plan/draft"}, {"POST", "summary/refine"}, {"POST", "final"}, {"GET", "finals/22222222-2222-2222-2222-222222222222"}, {"POST", "finals/22222222-2222-2222-2222-222222222222/refinements"}, {"POST", "finals/22222222-2222-2222-2222-222222222222/accept"}} {
 		response := httptest.NewRecorder()
 		mux.ServeHTTP(response, httptest.NewRequest(route.method, "/api/v1/projects/11111111-1111-1111-1111-111111111111/"+route.path, nil))
 		if response.Code != http.StatusUnauthorized {

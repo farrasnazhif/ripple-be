@@ -258,6 +258,138 @@
                 }
             }
         },
+        "/projects/{projectID}/finals/{finalID}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "projects"
+                ],
+                "summary": "Get a final output and reconcile its generation status",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Project ID",
+                        "name": "projectID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Final output ID",
+                        "name": "finalID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_farrasnazhif_ripple-be_internal_entity.FinalOutput"
+                        }
+                    }
+                }
+            }
+        },
+        "/projects/{projectID}/finals/{finalID}/accept": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "projects"
+                ],
+                "summary": "Accept a completed final output version",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Project ID",
+                        "name": "projectID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Final output ID",
+                        "name": "finalID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_farrasnazhif_ripple-be_internal_entity.FinalOutput"
+                        }
+                    }
+                }
+            }
+        },
+        "/projects/{projectID}/finals/{finalID}/refinements": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "projects"
+                ],
+                "summary": "Refine a saved final image or video using it as a reference",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Project ID",
+                        "name": "projectID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Source final output ID",
+                        "name": "finalID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Refinement instructions and idempotency key",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_farrasnazhif_ripple-be_internal_dto_request.FinalRefinement"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_farrasnazhif_ripple-be_internal_entity.FinalOutput"
+                        }
+                    }
+                }
+            }
+        },
         "/users/me": {
             "get": {
                 "security": [
@@ -288,6 +420,23 @@
         }
     },
     "definitions": {
+        "github_com_farrasnazhif_ripple-be_internal_dto_request.FinalRefinement": {
+            "type": "object",
+            "properties": {
+                "image_index": {
+                    "type": "integer"
+                },
+                "prompt": {
+                    "type": "string"
+                },
+                "reason": {
+                    "type": "string"
+                },
+                "request_key": {
+                    "type": "string"
+                }
+            }
+        },
         "github_com_farrasnazhif_ripple-be_internal_dto_request.Login": {
             "type": "object",
             "required": [
@@ -370,6 +519,59 @@
                     "type": "string"
                 },
                 "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_farrasnazhif_ripple-be_internal_entity.FinalOutput": {
+            "type": "object",
+            "properties": {
+                "accepted": {
+                    "type": "boolean"
+                },
+                "brief_version": {
+                    "type": "integer"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "download_url": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "image_index": {
+                    "type": "integer"
+                },
+                "job_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "kind": {
+                    "type": "string"
+                },
+                "outputs": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "parent_id": {
+                    "type": "string"
+                },
+                "prompt": {
+                    "type": "string"
+                },
+                "reason": {
+                    "type": "string"
+                },
+                "request_key": {
+                    "type": "string"
+                },
+                "status": {
                     "type": "string"
                 }
             }

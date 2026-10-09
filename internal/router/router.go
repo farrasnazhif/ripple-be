@@ -78,6 +78,9 @@ func New(cfg Config, authHandler *handler.AuthHandler, userHandler *handler.User
 			r.With(auth, apiLimiter).Post("/projects/{projectID}/plan/draft", cfg.Review.Draft)
 			r.With(auth, apiLimiter).Post("/projects/{projectID}/summary/refine", cfg.Review.Draft)
 			r.With(auth, apiLimiter).Post("/projects/{projectID}/final", cfg.Review.Final)
+			r.With(auth, apiLimiter).Post("/projects/{projectID}/finals/{finalID}/refinements", cfg.Review.RefineFinal)
+			r.With(auth, apiLimiter).Get("/projects/{projectID}/finals/{finalID}", cfg.Review.GetFinal)
+			r.With(auth, apiLimiter).Post("/projects/{projectID}/finals/{finalID}/accept", cfg.Review.AcceptFinal)
 		}
 
 		r.Route("/briefs", func(r chi.Router) {

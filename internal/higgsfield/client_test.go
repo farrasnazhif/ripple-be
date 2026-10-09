@@ -65,3 +65,28 @@ func TestSubmissionRejectionAndImmediateOutput(t *testing.T) {
 		t.Fatal("immediate result lost", err)
 	}
 }
+
+func TestRefinementUsesSourceMedia(t *testing.T) {
+	for _, kind := range []string{"image", "video"} {
+		t.Run(kind, func(t *testing.T) {
+			client := New("test-key")
+			client.http = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+				var body map[string]any
+				if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+					t.Fatal(err)
+				}
+				field, path := "image_url", "/higgsfield-ai/soul/v2/image-to-image"
+				if kind == "video" {
+					field, path = "video_url", "/bytedance/seedance-2.5/video-edit"
+				}
+				if r.URL.Path != path || body[field] != "https://example.com/source" || body["prompt"] != "Warmer" || r.Header.Get("Authorization") != "Key test-key" {
+					t.Fatal("invalid reference request", r.URL.Path, body)
+				}
+				return &http.Response{StatusCode: 202, Body: io.NopCloser(strings.NewReader(`{"request_id":"edit_1","status":"queued"}`))}, nil
+			})}
+			if job, err := client.Refine(context.Background(), kind, "Warmer", "https://example.com/source"); err != nil || job.RequestID != "edit_1" {
+				t.Fatal(job, err)
+			}
+		})
+	}
+}

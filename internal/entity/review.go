@@ -43,13 +43,22 @@ type ShotDecision struct {
 	CreatedAt    time.Time `json:"created_at"`
 }
 type FinalOutput struct {
-	ID           string   `json:"id"`
-	BriefVersion int      `json:"brief_version"`
-	Kind         string   `json:"kind"`
-	JobIDs       []string `json:"job_ids"`
-	Outputs      []string `json:"outputs"`
-	ObjectKey    string   `json:"-"`
-	DownloadURL  string   `json:"download_url,omitempty"`
+	ParentID     *string   `json:"parent_id,omitempty"`
+	RequestKey   *string   `json:"request_key,omitempty"`
+	ImageIndex   int       `json:"image_index"`
+	Prompt       string    `json:"prompt"`
+	Reason       string    `json:"reason"`
+	ProviderID   string    `json:"-"`
+	Status       string    `json:"status"`
+	Accepted     bool      `json:"accepted"`
+	CreatedAt    time.Time `json:"created_at"`
+	ID           string    `json:"id"`
+	BriefVersion int       `json:"brief_version"`
+	Kind         string    `json:"kind"`
+	JobIDs       []string  `json:"job_ids"`
+	Outputs      []string  `json:"outputs"`
+	ObjectKey    string    `json:"-"`
+	DownloadURL  string    `json:"download_url,omitempty"`
 }
 type ProjectReview struct {
 	OutputType string          `json:"output_type"`

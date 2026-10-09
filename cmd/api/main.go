@@ -79,17 +79,20 @@ func main() {
 
 	shotRepo := repository.NewStoryboardRepository(db)
 	jobRepo := repository.NewGenerationRepository(db)
-	var generator service.MediaGenerator
+	var mediaGenerator service.MediaGenerator
+	var mediaEditor service.FinalMediaEditor
 	if key := os.Getenv("HF_API_KEY"); key != "" {
-		generator = higgsfield.New(key)
+		generator := higgsfield.New(key)
+		mediaGenerator = generator
+		mediaEditor = generator
 	}
-	workflowHandler := handler.NewWorkflowHandler(service.NewStoryboardService(projectRepo, briefRepo, shotRepo), service.NewGenerationService(shotRepo, jobRepo, generator))
+	workflowHandler := handler.NewWorkflowHandler(service.NewStoryboardService(projectRepo, briefRepo, shotRepo), service.NewGenerationService(shotRepo, jobRepo, mediaGenerator))
 	reviewRepo := repository.NewReviewRepository(db)
 	var reviewAI handler.ReviewAI
 	if key, model := os.Getenv("OPENAI_API_KEY"), os.Getenv("OPENAI_MODEL"); key != "" && model != "" {
 		reviewAI = openai.New(key, model)
 	}
-	reviewHandler := handler.NewReviewHandler(service.NewReviewService(reviewRepo, projectRepo, briefRepo, shotRepo, briefStorage), reviewAI, service.NewFinalOutputService(reviewRepo, projectRepo, briefRepo, shotRepo, jobRepo, briefStorage))
+	reviewHandler := handler.NewReviewHandler(service.NewReviewService(reviewRepo, projectRepo, briefRepo, shotRepo, briefStorage), reviewAI, service.NewFinalOutputService(reviewRepo, projectRepo, briefRepo, shotRepo, jobRepo, briefStorage), service.NewFinalRefinementService(repository.NewFinalRefinementRepository(db), mediaEditor, briefStorage))
 	// Router
 	mux := router.New(router.Config{
 		Workflow:        workflowHandler,

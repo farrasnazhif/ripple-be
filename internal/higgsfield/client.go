@@ -60,6 +60,28 @@ func (c *Client) Submit(ctx context.Context, kind, prompt string) (Job, error) {
 	default:
 		return Job{}, fmt.Errorf("unknown media kind %q", kind)
 	}
+	return c.submit(ctx, model, input)
+}
+
+// Refine edits saved media using its server-resolved reference URL.
+func (c *Client) Refine(ctx context.Context, kind, prompt, reference string) (Job, error) {
+	if c.key == "" {
+		return Job{}, ErrNotConfigured
+	}
+	if strings.TrimSpace(prompt) == "" {
+		return Job{}, fmt.Errorf("prompt is empty")
+	}
+	switch kind {
+	case "image":
+		return c.submit(ctx, "higgsfield-ai/soul/v2/image-to-image", map[string]any{"prompt": prompt, "image_url": reference, "batch_size": 1, "resolution": "720p", "aspect_ratio": "16:9", "enhance_prompt": true})
+	case "video":
+		return c.submit(ctx, "bytedance/seedance-2.5/video-edit", map[string]any{"prompt": prompt, "video_url": reference, "resolution": "720p", "output_format": "mp4", "generate_audio": true})
+	default:
+		return Job{}, fmt.Errorf("unknown media kind %q", kind)
+	}
+}
+
+func (c *Client) submit(ctx context.Context, model string, input map[string]any) (Job, error) {
 	body, err := json.Marshal(input)
 	if err != nil {
 		return Job{}, err

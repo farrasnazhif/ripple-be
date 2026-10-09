@@ -16,13 +16,14 @@ type ReviewAI interface {
 	RefineSummary(context.Context, string, string) (string, error)
 }
 type ReviewHandler struct {
-	review *service.ReviewService
-	ai     ReviewAI
-	finals *service.FinalOutputService
+	review      *service.ReviewService
+	ai          ReviewAI
+	finals      *service.FinalOutputService
+	refinements *service.FinalRefinementService
 }
 
-func NewReviewHandler(review *service.ReviewService, ai ReviewAI, finals *service.FinalOutputService) *ReviewHandler {
-	return &ReviewHandler{review, ai, finals}
+func NewReviewHandler(review *service.ReviewService, ai ReviewAI, finals *service.FinalOutputService, refinements *service.FinalRefinementService) *ReviewHandler {
+	return &ReviewHandler{review, ai, finals, refinements}
 }
 func (h *ReviewHandler) Get(w http.ResponseWriter, r *http.Request) {
 	if !workflowIDs(w, r, "projectID") {

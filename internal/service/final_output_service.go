@@ -84,7 +84,7 @@ func (s *FinalOutputService) Create(ctx context.Context, user, project, kind str
 		sources = append(sources, accepted.Outputs[0])
 	}
 	for _, saved := range state.Finals {
-		if saved.Kind == kind && saved.BriefVersion == b.Version && strings.Join(saved.JobIDs, ",") == strings.Join(final.JobIDs, ",") {
+		if saved.Accepted && saved.Status == "completed" && saved.Kind == kind && saved.BriefVersion == b.Version && strings.Join(saved.JobIDs, ",") == strings.Join(final.JobIDs, ",") {
 			if saved.ObjectKey != "" && s.storage != nil {
 				saved.DownloadURL, err = s.storage.PresignDownload(ctx, saved.ObjectKey)
 			}

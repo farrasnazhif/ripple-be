@@ -213,3 +213,6 @@ The original implementation notes above describe the earlier flow. The updated i
 - [x] Shared shadcn Alert Dialog confirmation for deleting a project, clearing brief/summary text, removing references/requirements, removing planned shots and selected files.
 - [x] Migration 26 queues R2 cleanup in the deletion transaction; cleanup retries after signed upload links expire.
 - [x] PostgreSQL CRUD/ownership/cascade/cleanup checks, Go tests/vet, frontend type/lint/graph checks and build. Browser testing remains skipped at user request.
+
+- [x] Migration 27: direct final image/video refinement, saved source references and adjustments/reasons, candidate polling, explicit acceptance, version comparison, and duplicate-submission protection.
+- [x] Verify owner boundaries, collection preservation, stale brief/source rejection, and accepted-only final canvas projection.

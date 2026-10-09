@@ -1,5 +1,16 @@
 basePath: /api/v1
 definitions:
+  github_com_farrasnazhif_ripple-be_internal_dto_request.FinalRefinement:
+    properties:
+      image_index:
+        type: integer
+      prompt:
+        type: string
+      reason:
+        type: string
+      request_key:
+        type: string
+    type: object
   github_com_farrasnazhif_ripple-be_internal_dto_request.Login:
     properties:
       email:
@@ -56,6 +67,41 @@ definitions:
       token:
         type: string
       username:
+        type: string
+    type: object
+  github_com_farrasnazhif_ripple-be_internal_entity.FinalOutput:
+    properties:
+      accepted:
+        type: boolean
+      brief_version:
+        type: integer
+      created_at:
+        type: string
+      download_url:
+        type: string
+      id:
+        type: string
+      image_index:
+        type: integer
+      job_ids:
+        items:
+          type: string
+        type: array
+      kind:
+        type: string
+      outputs:
+        items:
+          type: string
+        type: array
+      parent_id:
+        type: string
+      prompt:
+        type: string
+      reason:
+        type: string
+      request_key:
+        type: string
+      status:
         type: string
     type: object
   github_com_farrasnazhif_ripple-be_internal_entity.Project:
@@ -231,6 +277,89 @@ paths:
       security:
       - BearerAuth: []
       summary: Update project title and description
+      tags:
+      - projects
+  /projects/{projectID}/finals/{finalID}:
+    get:
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectID
+        required: true
+        type: string
+      - description: Final output ID
+        in: path
+        name: finalID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_farrasnazhif_ripple-be_internal_entity.FinalOutput'
+      security:
+      - BearerAuth: []
+      summary: Get a final output and reconcile its generation status
+      tags:
+      - projects
+  /projects/{projectID}/finals/{finalID}/accept:
+    post:
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectID
+        required: true
+        type: string
+      - description: Final output ID
+        in: path
+        name: finalID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_farrasnazhif_ripple-be_internal_entity.FinalOutput'
+      security:
+      - BearerAuth: []
+      summary: Accept a completed final output version
+      tags:
+      - projects
+  /projects/{projectID}/finals/{finalID}/refinements:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectID
+        required: true
+        type: string
+      - description: Source final output ID
+        in: path
+        name: finalID
+        required: true
+        type: string
+      - description: Refinement instructions and idempotency key
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_farrasnazhif_ripple-be_internal_dto_request.FinalRefinement'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            $ref: '#/definitions/github_com_farrasnazhif_ripple-be_internal_entity.FinalOutput'
+      security:
+      - BearerAuth: []
+      summary: Refine a saved final image or video using it as a reference
       tags:
       - projects
   /users/me:
