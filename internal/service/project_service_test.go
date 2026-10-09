@@ -49,3 +49,25 @@ func TestProjectCreateValidatesAndScopesOwner(t *testing.T) {
 		t.Fatalf("get did not scope owner: %v", err)
 	}
 }
+
+func (r *projectRepoStub) Update(ctx context.Context, user, project, name, description string) (*entity.Project, error) {
+	return r.Create(ctx, user, name, description)
+}
+func (r *projectRepoStub) Delete(_ context.Context, user, project string) error {
+	r.userID = user
+	return nil
+}
+func TestProjectEditValidationAndDeleteOwner(t *testing.T) {
+	r := &projectRepoStub{}
+	s := NewProjectService(r)
+	p, err := s.Update(context.Background(), "owner", "project", " New title ", " New description ")
+	if err != nil || p.Name != "New title" || r.userID != "owner" || p.Description != "New description" {
+		t.Fatal(p, err)
+	}
+	if _, err = s.Update(context.Background(), "owner", "project", " ", ""); !errors.Is(err, ErrInvalidProject) {
+		t.Fatal("blank edit accepted")
+	}
+	if err = s.Delete(context.Background(), "owner", "project"); err != nil || r.userID != "owner" {
+		t.Fatal("delete owner", err)
+	}
+}

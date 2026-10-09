@@ -24,7 +24,7 @@ Evidence labels: [VERIFIED FACT], [USER-PROVIDED CLAIM], [INFERENCE], [ASSUMPTIO
 
 The primary features are **Brief Summary** and **Change Impact Tracking**. The following user decisions supersede older research proposals below wherever they conflict.
 
-- `/project` displays owned project cards. `/project/[projectId]` displays the node canvas beside the shared sidebar and beneath the project-name header. Initially only Brief exists; later nodes require saved outputs.
+- `/project` displays an owned-project table with title, description, creator, creation date, and Edit/Delete actions. Critical destructive actions require an alert dialog confirmation. `/project/[projectId]` displays the node canvas beside the shared sidebar and beneath the project-name header. Initially only Brief exists; later nodes require saved outputs.
 - Brief and Brief Summary open editable modals: edit/delete content, add/remove references, review requirements, save a new immutable snapshot, or refine the summary with ChatGPT. Earlier source text and references remain accessible in history.
 - After confirming the summary, choose **Images** or **Video**. Images use a reviewed image plan; video uses a reviewed storyboard. Plans can be manually entered or drafted with ChatGPT. Requirements have stable keys and global/local scope; local requirements are explicitly linked to shots.
 - Brief edits produce stored requirement diffs and deterministic affected/unchanged shot lists with reasons. Global requirements affect every shot; local requirements affect linked shots. Narrative-only edits conservatively request review instead of claiming no impact. Requirement deletion retains historical shot links for impact calculation.

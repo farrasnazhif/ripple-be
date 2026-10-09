@@ -141,6 +141,8 @@ Swagger UI at `http://localhost:8080/api/v1/swagger/`
 | GET    | `/api/v1/projects`                    | ✓    | List owned projects   |
 | POST   | `/api/v1/projects`                    | ✓    | Create a project      |
 | GET    | `/api/v1/projects/{projectID}`        | ✓    | Get an owned project  |
+| PATCH  | `/api/v1/projects/{projectID}`        | ✓    | Edit title and description |
+| DELETE | `/api/v1/projects/{projectID}`        | ✓    | Delete project and saved workflow |
 | POST   | `/api/v1/auth/register`                | —    | Register and receive JWT |
 | POST   | `/api/v1/auth/login`                   | —    | Login                 |
 | GET    | `/api/v1/users/me`                     | ✓    | Get profile           |
@@ -163,7 +165,7 @@ See [`.envrc.example`](.envrc.example) for all available variables.
 
 ## Project workflow
 
-Apply migrations through 25 (`migrate ... up`) before using storyboard/generation endpoints. Open Brief to edit source text/references and save a version. Generate a ChatGPT summary or edit one manually. Open Brief Summary, confirm requirements and choose images or video. Review a manual or ChatGPT-drafted image plan/storyboard, link local requirements, and save it. Generate outputs per shot, inspect versions in the wide review modal, refine or keep with a reason, and accept the chosen version. Requirement edits show affected and unchanged shots; source-only edits conservatively request review.
+Apply migrations through 26 (`migrate ... up`) before using storyboard/generation endpoints. Open Brief to edit source text/references and save a version. Generate a ChatGPT summary or edit one manually. Open Brief Summary, confirm requirements and choose images or video. Review a manual or ChatGPT-drafted image plan/storyboard, link local requirements, and save it. Generate outputs per shot, inspect versions in the wide review modal, refine or keep with a reason, and accept the chosen version. Requirement edits show affected and unchanged shots; source-only edits conservatively request review.
 
 Create the final from the plan modal after accepting all shots and resolving changes. Images form a collection; videos are combined in storyboard order and stored in R2. Install **FFmpeg and ffprobe** (`brew install ffmpeg` on macOS) for video assembly; the Docker runtime includes them. Final videos retain audio, use 1280×720/30fps, and add silence to silent clips. A final is saved only if the brief and accepted selection still match after assembly. Individual clips are limited to 250 MiB and five minutes during assembly. Set `DEMO_ASSET_DIR` if demo files live elsewhere; `/demo-assets/` local files are disabled when `ENV=production`.
 
@@ -199,4 +201,10 @@ make seed-demo USER_ID=2b90fbea-4a24-475f-a653-794298b5e5cc
 
 Seeded media and summaries are explicitly synthetic samples; no ChatGPT or Higgsfield generation is called. The illustrations are drawn locally; the video is the MDN CC0 flower clip. Sample output paths use the frontend's `/demo-assets/` directory. Only terminal job states are seeded, so opening the projects does not poll fake provider IDs. Clicking a real Generate action afterwards still uses the normal paid provider integration. These demos include explicit requirement changes, selective impact, preserved media versions, acceptance, and a real combined final MP4 in R2. Prepared revisions use sample media, not AI-generated changes.
 
-To remove the demos, delete only the five `DEMO 1/2/3/4/5` project records for this owner (dependent briefs, attachments, shots and jobs cascade), then remove their `demo/<user-id>/<project-id>/reference.png` objects from R2. Avoid deleting real projects by name pattern alone.
+To remove the demos, delete only the five `DEMO 1/2/3/4/5` project records for this owner (dependent briefs, attachments, shots and jobs cascade), then remove their reference objects beneath `demo/<user-id>/<project-id>/` from R2. Avoid deleting real projects by name pattern alone.
+
+## Project table and destructive actions
+
+`/project` uses a shadcn table with title, description, creator username, creation date, and Edit/Delete actions. Editing only changes project metadata. Every response includes `created_by`; only owned projects can be edited or deleted. Shadcn Alert Dialog confirms project deletion, clearing brief/summary text, removing references or requirements, and removing planned shots or selected upload files. Failed deletion keeps the alert open with an error and preserves the row.
+
+Apply migration 26 for the durable storage cleanup queue. Project deletion and queueing all source/archived attachments and final video keys happen in one database transaction. Workflow records cascade immediately. R2 objects are removed by the API's cleanup loop after 15 minutes, allowing previously issued upload links to expire; failures remain queued and retry every minute while the API runs. Provider-hosted media and frontend demo illustration files are shared/external assets and are not deleted from those hosts.

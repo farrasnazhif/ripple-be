@@ -64,6 +64,8 @@ definitions:
         type: string
       created_at:
         type: string
+      created_by:
+        type: string
       description:
         type: string
       id:
@@ -165,6 +167,26 @@ paths:
       tags:
       - projects
   /projects/{projectID}:
+    delete:
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Permanently delete an owned project and its workflow
+      tags:
+      - projects
     get:
       parameters:
       - description: Project ID
@@ -182,6 +204,33 @@ paths:
       security:
       - BearerAuth: []
       summary: Get an owned project
+      tags:
+      - projects
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectID
+        required: true
+        type: string
+      - description: Updated project title and description
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_farrasnazhif_ripple-be_internal_dto_request.ProjectCreate'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_farrasnazhif_ripple-be_internal_entity.Project'
+      security:
+      - BearerAuth: []
+      summary: Update project title and description
       tags:
       - projects
   /users/me:

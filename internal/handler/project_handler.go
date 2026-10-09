@@ -89,3 +89,51 @@ func projectError(w http.ResponseWriter, err error) {
 		helpers.ErrorResponse(w, http.StatusInternalServerError, "internal server error")
 	}
 }
+
+// UpdateProject godoc
+//
+//	@Summary	Update project title and description
+//	@Tags		projects
+//	@Accept		json
+//	@Produce	json
+//	@Security	BearerAuth
+//	@Param		projectID	path		string					true	"Project ID"
+//	@Param		body		body		request.ProjectCreate	true	"Updated project title and description"
+//	@Success	200			{object}	entity.Project
+//	@Router		/projects/{projectID} [patch]
+func (h *ProjectHandler) Update(w http.ResponseWriter, r *http.Request) {
+	if !workflowIDs(w, r, "projectID") {
+		return
+	}
+	var input request.ProjectCreate
+	if err := helpers.ReadJSON(r, &input); err != nil {
+		helpers.ErrorResponse(w, 400, err.Error())
+		return
+	}
+	p, err := h.service.Update(r.Context(), helpers.UserIDFromContext(r), chi.URLParam(r, "projectID"), input.Name, input.Description)
+	if err != nil {
+		projectError(w, err)
+		return
+	}
+	helpers.SuccessResponse(w, 200, "project updated", p)
+}
+
+// DeleteProject godoc
+//
+//	@Summary	Permanently delete an owned project and its workflow
+//	@Tags		projects
+//	@Produce	json
+//	@Security	BearerAuth
+//	@Param		projectID	path		string	true	"Project ID"
+//	@Success	200			{object}	map[string]interface{}
+//	@Router		/projects/{projectID} [delete]
+func (h *ProjectHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	if !workflowIDs(w, r, "projectID") {
+		return
+	}
+	if err := h.service.Delete(r.Context(), helpers.UserIDFromContext(r), chi.URLParam(r, "projectID")); err != nil {
+		projectError(w, err)
+		return
+	}
+	helpers.SuccessResponse(w, 200, "project deleted", nil)
+}

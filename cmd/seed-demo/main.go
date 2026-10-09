@@ -134,7 +134,7 @@ func seed(ctx context.Context, db *sql.DB, storage *r2.Client, user, mediaDir st
 		} else if !os.IsExist(err) {
 			return err
 		}
-		objectKey := "demo/" + user + "/" + projectID + "/reference.png"
+		objectKey := "demo/" + user + "/" + projectID + "/" + briefID + "/reference.png"
 		signed, err := storage.PresignUpload(ctx, objectKey, "image/png")
 		if err != nil {
 			return err

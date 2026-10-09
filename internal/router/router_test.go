@@ -51,6 +51,14 @@ func TestWorkspaceAPIRequiresLogin(t *testing.T) {
 		}
 	}
 
+	for _, method := range []string{"PATCH", "DELETE"} {
+		response := httptest.NewRecorder()
+		mux.ServeHTTP(response, httptest.NewRequest(method, "/api/v1/projects/11111111-1111-1111-1111-111111111111", nil))
+		if response.Code != http.StatusUnauthorized {
+			t.Fatalf("project mutation exposed: %s got %d", method, response.Code)
+		}
+	}
+
 	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id": "user-1", "exp": time.Now().Add(time.Hour).Unix(),
 	}).SignedString([]byte("test-secret"))

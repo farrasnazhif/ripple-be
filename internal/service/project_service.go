@@ -32,3 +32,14 @@ func (s *ProjectService) List(ctx context.Context, userID string) ([]entity.Proj
 func (s *ProjectService) Get(ctx context.Context, userID, projectID string) (*entity.Project, error) {
 	return s.repo.Get(ctx, userID, projectID)
 }
+
+func (s *ProjectService) Update(ctx context.Context, user, project, name, description string) (*entity.Project, error) {
+	name, description = strings.TrimSpace(name), strings.TrimSpace(description)
+	if name == "" || len([]rune(name)) > 100 || len([]rune(description)) > 500 {
+		return nil, ErrInvalidProject
+	}
+	return s.repo.Update(ctx, user, project, name, description)
+}
+func (s *ProjectService) Delete(ctx context.Context, user, project string) error {
+	return s.repo.Delete(ctx, user, project)
+}

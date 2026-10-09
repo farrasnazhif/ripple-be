@@ -58,6 +58,8 @@ func New(cfg Config, authHandler *handler.AuthHandler, userHandler *handler.User
 		r.With(auth, apiLimiter).Post("/projects", projectHandler.Create)
 		r.With(auth, apiLimiter).Post("/projects/", projectHandler.Create)
 		r.With(auth, apiLimiter).Get("/projects/{projectID}", projectHandler.Get)
+		r.With(auth, apiLimiter).Patch("/projects/{projectID}", projectHandler.Update)
+		r.With(auth, apiLimiter).Delete("/projects/{projectID}", projectHandler.Delete)
 
 		if cfg.Workflow != nil {
 			r.With(auth).Get("/projects/{projectID}/storyboard", cfg.Workflow.ListShots)

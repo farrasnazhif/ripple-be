@@ -60,6 +60,7 @@ func main() {
 		log.Println("R2 attachment storage is not configured")
 	}
 
+	go service.CleanupStorage(repository.NewStorageCleanupRepository(db), briefStorage)
 	// Services
 	authSvc := service.NewAuthService(userRepo, jwtSecret)
 	userSvc := service.NewUserService(userRepo)

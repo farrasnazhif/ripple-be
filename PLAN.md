@@ -205,3 +205,11 @@ The original implementation notes above describe the earlier flow. The updated i
 - [x] PostgreSQL workflow checks, impact/assembly assertions, frontend graph checks, type-check, lint and production build.
 - [ ] Paid live provider validation. Browser testing stopped at user request.
 - [ ] Automatic note interpretation/point extraction, token ledger, retry thresholds, CSV import, background provider reconciliation and durable archival of individual provider outputs.
+
+## Implemented project table — 10 October 2026
+
+- [x] Shadcn table with title, description, creator username, creation date, Edit and Delete.
+- [x] Owner-scoped metadata update and project deletion APIs; preserve brief content and project identity when editing.
+- [x] Shared shadcn Alert Dialog confirmation for deleting a project, clearing brief/summary text, removing references/requirements, removing planned shots and selected files.
+- [x] Migration 26 queues R2 cleanup in the deletion transaction; cleanup retries after signed upload links expire.
+- [x] PostgreSQL CRUD/ownership/cascade/cleanup checks, Go tests/vet, frontend type/lint/graph checks and build. Browser testing remains skipped at user request.
