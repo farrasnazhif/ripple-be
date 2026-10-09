@@ -36,11 +36,12 @@ func TestProjectEditingAndDeletionDatabase(t *testing.T) {
 	briefs := NewBriefRepository(db)
 	reviews := NewReviewRepository(db)
 	shots := NewStoryboardRepository(db)
-	jobs := NewGenerationRepository(db)
+	jobs := NewGenerationRepository(db, testBudgetRates)
 	p, err := projects.Create(ctx, user, "Original title", "Original description")
 	if err != nil || p.CreatedBy != name {
 		t.Fatal(p, err)
 	}
+	fundTestProject(t, db, user, p.ID)
 	oldTime := p.CreatedAt
 	if err = briefs.SetText(ctx, user, p.BriefID, "Original brief"); err != nil {
 		t.Fatal(err)

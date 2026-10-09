@@ -94,6 +94,7 @@ func (s *FinalRefinementService) saveSubmission(ctx context.Context, f, base *en
 		f.Status = "unknown"
 		if errors.Is(submitErr, higgsfield.ErrSubmissionRejected) {
 			f.Status = "failed"
+			f.SubmissionRejected = true
 		}
 	} else {
 		applyFinalProvider(f, base, result)

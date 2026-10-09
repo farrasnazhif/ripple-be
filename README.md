@@ -218,3 +218,29 @@ Migration 27 adds final refinement status, source-version links, prompts/reasons
 Higgsfield Soul 2 image-to-image takes the selected final image as `image_url`; Seedance 2.5 video-edit takes the combined final video as `video_url`. Image edits replace only the selected member of the final collection. Refined outputs currently use provider-hosted URLs; assembled videos continue to use private R2. Local `/demo-assets` URLs are not valid provider references. Paid submissions are never automatically retried after an ambiguous timeout.
 
 Image generation uses POST `/projects/{projectID}/images` with `request_key` and `expected_version`. The backend reads the saved summary and requirements under a brief lock, submits one Higgsfield image request, and stores it directly in final-output history. It creates no storyboard shots or intermediate image plan. Completed initial images appear as pending approval; accepting chooses the active final, and subsequent refinements preserve its history.
+
+## Project media budgets
+
+Apply migration 28 (`make migrate-up`) and restart the API. Each project now has a **Budget** action in the project table and on the canvas. Set a USD cap before submitting new paid media requests. Existing projects and demo media are preserved, and historical charges are not backfilled.
+
+Configure conservative per-request estimates in `.envrc` using the current model prices for your Higgsfield API account:
+
+```sh
+export AI_IMAGE_ESTIMATE_CENTS=0
+export AI_VIDEO_ESTIMATE_CENTS=0
+export AI_IMAGE_REFINEMENT_ESTIMATE_CENTS=0
+export AI_VIDEO_REFINEMENT_ESTIMATE_CENTS=0
+```
+
+Values are integer USD cents. Zero means unpriced and blocks that operation; no rates are invented. Restart the backend after configuring them. Image and clip estimates cover the currently configured one-image / five-second clip requests. Final-video refinement can use a longer reference, so its flat estimate must conservatively cover the maximum final duration you permit; these estimates are not provider price guarantees.
+
+Authenticated, owner-scoped endpoints:
+
+- `GET /projects/{projectID}/budget`: cap, available funds, reserved funds, estimated spending, configured rates and latest 100 ledger entries. Totals include all entries.
+- `PUT /projects/{projectID}/budget`: `{ "limit_cents": 10000 }` sets a $100 project cap. A cap may range from zero to $1,000,000 and cannot be lowered below reserved plus estimated spent amounts.
+
+All clip generations/regenerations, direct final-image generations and final image/video refinements reserve estimated cost in the same database transaction that claims the job. The project row lock prevents concurrent requests across these routes from exceeding the cap. Idempotent retries do not create another reservation. Missing budgets / insufficient funds return HTTP 402; missing rates return HTTP 503. The UI displays a cost confirmation before submitting media and warns once 80% of the cap is allocated.
+
+Submitting, unknown, queued and in-progress requests retain their reservations. A confirmed provider submission rejection releases its reservation. Terminal requests accepted by the provider move to **estimated spent**, including failures, cancellation and moderation outcomes: no refund is assumed. Existing status polling updates the ledger; an unknown submission needs provider-dashboard reconciliation and is never automatically resubmitted. The ledger records the project owner who requested generation, operation, description, estimated amount, budget state and job status. Deleting the project also deletes its ledger, so export any required accounting records first.
+
+This is an estimate-based project media budget, not a provider invoice or an agency-wide hard dollar limit. Provider balance reconciliation, actual charge/refund reconciliation, monthly agency limits, team permissions and member allowances are not implemented. ChatGPT summaries/storyboard drafts, storage and local final-video assembly are outside this budget. Seed demos contain no ledger charges because no paid provider generation occurs.

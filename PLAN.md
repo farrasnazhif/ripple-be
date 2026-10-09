@@ -218,3 +218,8 @@ The original implementation notes above describe the earlier flow. The updated i
 - [x] Verify owner boundaries, collection preservation, stale brief/source rejection, and accepted-only final canvas projection.
 
 - [x] Direct Brief → Brief Summary → Final Image flow; no image plan or storyboard-shot creation. Preserve existing image collections and continue final refinement/versioning.
+
+
+### Project media budgeting
+
+Implemented owner-managed project caps in USD cents, configurable image/clip/final-refinement estimates, cost confirmation before media requests, atomic reservations, an 80% allocation warning, and a latest-100 usage ledger. Missing rates or budgets block new media generation; prior projects and synthetic demos are not charged retroactively. Unknown submissions retain reservations, explicit submission rejections release them, and terminal accepted requests count as estimated spending. Actual provider charges/refunds, ChatGPT costs, agency/monthly caps and shared-team permissions remain outside this first project-budget implementation.

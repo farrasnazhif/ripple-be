@@ -28,6 +28,11 @@ definitions:
     - email
     - password
     type: object
+  github_com_farrasnazhif_ripple-be_internal_dto_request.ProjectBudget:
+    properties:
+      limit_cents:
+        type: integer
+    type: object
   github_com_farrasnazhif_ripple-be_internal_dto_request.ProjectCreate:
     properties:
       description:
@@ -111,6 +116,30 @@ definitions:
       status:
         type: string
     type: object
+  github_com_farrasnazhif_ripple-be_internal_entity.GenerationRates:
+    additionalProperties:
+      format: int64
+      type: integer
+    type: object
+  github_com_farrasnazhif_ripple-be_internal_entity.GenerationUsage:
+    properties:
+      actor:
+        type: string
+      created_at:
+        type: string
+      description:
+        type: string
+      estimate_cents:
+        type: integer
+      operation:
+        type: string
+      operation_id:
+        type: string
+      state:
+        type: string
+      status:
+        type: string
+    type: object
   github_com_farrasnazhif_ripple-be_internal_entity.Project:
     properties:
       brief_id:
@@ -125,6 +154,23 @@ definitions:
         type: string
       name:
         type: string
+    type: object
+  github_com_farrasnazhif_ripple-be_internal_entity.ProjectBudget:
+    properties:
+      available_cents:
+        type: integer
+      limit_cents:
+        type: integer
+      rates:
+        $ref: '#/definitions/github_com_farrasnazhif_ripple-be_internal_entity.GenerationRates'
+      reserved_cents:
+        type: integer
+      spent_cents:
+        type: integer
+      usage:
+        items:
+          $ref: '#/definitions/github_com_farrasnazhif_ripple-be_internal_entity.GenerationUsage'
+        type: array
     type: object
 host: localhost:8080
 info:
@@ -284,6 +330,53 @@ paths:
       security:
       - BearerAuth: []
       summary: Update project title and description
+      tags:
+      - projects
+  /projects/{projectID}/budget:
+    get:
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_farrasnazhif_ripple-be_internal_entity.ProjectBudget'
+      security:
+      - BearerAuth: []
+      summary: Get the project media budget, estimates and latest 100 usage entries
+      tags:
+      - projects
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectID
+        required: true
+        type: string
+      - description: Budget limit
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_farrasnazhif_ripple-be_internal_dto_request.ProjectBudget'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_farrasnazhif_ripple-be_internal_entity.ProjectBudget'
+      security:
+      - BearerAuth: []
+      summary: Set the owned project's media budget cap in USD cents
       tags:
       - projects
   /projects/{projectID}/finals/{finalID}:

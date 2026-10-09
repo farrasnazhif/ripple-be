@@ -260,6 +260,82 @@ const docTemplate = `{
                 }
             }
         },
+        "/projects/{projectID}/budget": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "projects"
+                ],
+                "summary": "Get the project media budget, estimates and latest 100 usage entries",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Project ID",
+                        "name": "projectID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_farrasnazhif_ripple-be_internal_entity.ProjectBudget"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "projects"
+                ],
+                "summary": "Set the owned project's media budget cap in USD cents",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Project ID",
+                        "name": "projectID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Budget limit",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_farrasnazhif_ripple-be_internal_dto_request.ProjectBudget"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_farrasnazhif_ripple-be_internal_entity.ProjectBudget"
+                        }
+                    }
+                }
+            }
+        },
         "/projects/{projectID}/finals/{finalID}": {
             "get": {
                 "security": [
@@ -510,6 +586,14 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_farrasnazhif_ripple-be_internal_dto_request.ProjectBudget": {
+            "type": "object",
+            "properties": {
+                "limit_cents": {
+                    "type": "integer"
+                }
+            }
+        },
         "github_com_farrasnazhif_ripple-be_internal_dto_request.ProjectCreate": {
             "type": "object",
             "properties": {
@@ -634,6 +718,42 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_farrasnazhif_ripple-be_internal_entity.GenerationRates": {
+            "type": "object",
+            "additionalProperties": {
+                "type": "integer",
+                "format": "int64"
+            }
+        },
+        "github_com_farrasnazhif_ripple-be_internal_entity.GenerationUsage": {
+            "type": "object",
+            "properties": {
+                "actor": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "estimate_cents": {
+                    "type": "integer"
+                },
+                "operation": {
+                    "type": "string"
+                },
+                "operation_id": {
+                    "type": "string"
+                },
+                "state": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
         "github_com_farrasnazhif_ripple-be_internal_entity.Project": {
             "type": "object",
             "properties": {
@@ -654,6 +774,32 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                }
+            }
+        },
+        "github_com_farrasnazhif_ripple-be_internal_entity.ProjectBudget": {
+            "type": "object",
+            "properties": {
+                "available_cents": {
+                    "type": "integer"
+                },
+                "limit_cents": {
+                    "type": "integer"
+                },
+                "rates": {
+                    "$ref": "#/definitions/github_com_farrasnazhif_ripple-be_internal_entity.GenerationRates"
+                },
+                "reserved_cents": {
+                    "type": "integer"
+                },
+                "spent_cents": {
+                    "type": "integer"
+                },
+                "usage": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_farrasnazhif_ripple-be_internal_entity.GenerationUsage"
+                    }
                 }
             }
         }

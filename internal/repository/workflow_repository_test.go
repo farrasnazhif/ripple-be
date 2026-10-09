@@ -33,7 +33,7 @@ func TestProjectWorkflowDatabase(t *testing.T) {
 	projects := NewProjectRepository(db)
 	briefs := NewBriefRepository(db)
 	shots := NewStoryboardRepository(db)
-	jobs := NewGenerationRepository(db)
+	jobs := NewGenerationRepository(db, testBudgetRates)
 	p, err := projects.Create(ctx, user, "Workflow test", "description")
 	if err != nil {
 		t.Fatal(err)
@@ -63,6 +63,7 @@ func TestProjectWorkflowDatabase(t *testing.T) {
 	if _, err = shots.GetShot(ctx, "00000000-0000-0000-0000-000000000000", p.ID, list[0].ID); !errors.Is(err, entity.ErrNotFound) {
 		t.Fatal("owner isolation", err)
 	}
+	fundTestProject(t, db, user, p.ID)
 	key := "11111111-1111-1111-1111-111111111111"
 	var wait sync.WaitGroup
 	claims := make(chan bool, 2)

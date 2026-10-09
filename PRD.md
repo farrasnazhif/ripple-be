@@ -489,3 +489,8 @@ Required fixture: the Laju brief with four points, 12 shots, S1/S2/S3 notes, and
 - [ ] T-16 R2 attachments are owner-protected and retrievable
 
 Resolve ChatGPT/OpenAI API model/access, Higgsfield model/access, and demo hosting (D4, R-09, R-10). Outside this hackathon scope: automatic media-quality scores, automatic method recommendation, vector database, agents, OZU-app integration, and video analysis.
+
+
+### Project media budgeting
+
+Implemented owner-managed project caps in USD cents, configurable image/clip/final-refinement estimates, cost confirmation before media requests, atomic reservations, an 80% allocation warning, and a latest-100 usage ledger. Missing rates or budgets block new media generation; prior projects and synthetic demos are not charged retroactively. Unknown submissions retain reservations, explicit submission rejections release them, and terminal accepted requests count as estimated spending. Actual provider charges/refunds, ChatGPT costs, agency/monthly caps and shared-team permissions remain outside this first project-budget implementation.

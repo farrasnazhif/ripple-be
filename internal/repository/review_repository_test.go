@@ -36,7 +36,7 @@ func TestReviewWorkflowDatabase(t *testing.T) {
 	briefs := NewBriefRepository(db)
 	reviews := NewReviewRepository(db)
 	shots := NewStoryboardRepository(db)
-	jobs := NewGenerationRepository(db)
+	jobs := NewGenerationRepository(db, testBudgetRates)
 	p, err := projects.Create(ctx, user, "Review test", "Source")
 	if err != nil {
 		t.Fatal(err)
@@ -83,6 +83,7 @@ func TestReviewWorkflowDatabase(t *testing.T) {
 		t.Fatal("requirement links", plan, err)
 	}
 	ids := []string{}
+	fundTestProject(t, db, user, p.ID)
 	for _, shot := range plan {
 		var key string
 		if err = db.QueryRowContext(ctx, `SELECT gen_random_uuid()`).Scan(&key); err != nil {

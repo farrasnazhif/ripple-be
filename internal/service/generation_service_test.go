@@ -7,6 +7,7 @@ import (
 
 	"github.com/farrasnazhif/ripple-be/internal/entity"
 	"github.com/farrasnazhif/ripple-be/internal/higgsfield"
+	"github.com/farrasnazhif/ripple-be/internal/repository"
 )
 
 type shotRepoStub struct{}
@@ -24,9 +25,15 @@ func (shotRepoStub) GetShot(_ context.Context, user, project, shot string) (*ent
 	return &entity.StoryboardShot{ID: shot, Prompt: "Saved prompt"}, nil
 }
 
-type jobRepoStub struct{ job *entity.GenerationJob }
+type jobRepoStub struct {
+	job      *entity.GenerationJob
+	claimErr error
+}
 
 func (r *jobRepoStub) Claim(_ context.Context, j *entity.GenerationJob) (bool, error) {
+	if r.claimErr != nil {
+		return false, r.claimErr
+	}
 	if r.job != nil {
 		return false, nil
 	}
@@ -122,5 +129,22 @@ func TestRefinementPromptAndIdempotency(t *testing.T) {
 	}
 	if _, err = s.Submit(ctx, "owner", "project", "shot", "image", "refinement-key", "Different prompt"); !errors.Is(err, ErrInvalidGeneration) || provider.calls != 1 {
 		t.Fatal("idempotency key accepted changed prompt", err)
+	}
+}
+
+func TestBudgetFailureDoesNotSubmitToProvider(t *testing.T) {
+	for _, blocked := range []error{repository.ErrBudgetUnset, repository.ErrBudgetRate, repository.ErrBudgetExceeded} {
+		provider := &generatorStub{}
+		s := NewGenerationService(shotRepoStub{}, &jobRepoStub{claimErr: blocked}, provider)
+		if _, err := s.Submit(context.Background(), "owner", "project", "shot", "video", "key"); !errors.Is(err, blocked) || provider.calls != 0 {
+			t.Fatal("paid request bypassed budget", err, provider.calls)
+		}
+	}
+}
+func TestInvalidProviderOutputDoesNotReleaseBudget(t *testing.T) {
+	j := &entity.GenerationJob{Kind: "image"}
+	applyProvider(j, higgsfield.Job{RequestID: "accepted", Status: "completed"})
+	if j.Status != "failed" || j.SubmissionRejected {
+		t.Fatal("accepted provider failure treated as rejected submission", j)
 	}
 }

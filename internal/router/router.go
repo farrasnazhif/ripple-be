@@ -13,6 +13,7 @@ import (
 )
 
 type Config struct {
+	Budget          *handler.BudgetHandler
 	Review          *handler.ReviewHandler
 	Workflow        *handler.WorkflowHandler
 	FrontendURL     string
@@ -61,6 +62,10 @@ func New(cfg Config, authHandler *handler.AuthHandler, userHandler *handler.User
 		r.With(auth, apiLimiter).Patch("/projects/{projectID}", projectHandler.Update)
 		r.With(auth, apiLimiter).Delete("/projects/{projectID}", projectHandler.Delete)
 
+		if cfg.Budget != nil {
+			r.With(auth).Get("/projects/{projectID}/budget", cfg.Budget.Get)
+			r.With(auth, apiLimiter).Put("/projects/{projectID}/budget", cfg.Budget.Set)
+		}
 		if cfg.Workflow != nil {
 			r.With(auth).Get("/projects/{projectID}/storyboard", cfg.Workflow.ListShots)
 			r.With(auth, apiLimiter).Post("/projects/{projectID}/storyboard", cfg.Workflow.CreateShots)

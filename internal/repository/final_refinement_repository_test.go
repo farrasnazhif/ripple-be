@@ -50,7 +50,8 @@ func TestFinalRefinementDatabase(t *testing.T) {
 	if err = reviews.SaveFinal(ctx, user, p.ID, base); err != nil {
 		t.Fatal(err)
 	}
-	repo := NewFinalRefinementRepository(db)
+	repo := NewFinalRefinementRepository(db, testBudgetRates)
+	fundTestProject(t, db, user, p.ID)
 	key := p.ID
 	candidate := &entity.FinalOutput{ParentID: &base.ID, RequestKey: &key, Prompt: "Warm", Reason: "Director feedback", Kind: "image", BriefVersion: 1, JobIDs: base.JobIDs, Status: "submitting", Outputs: []string{}}
 	if _, err = repo.Get(ctx, "00000000-0000-0000-0000-000000000000", p.ID, base.ID); !errors.Is(err, entity.ErrNotFound) {
@@ -131,6 +132,10 @@ func TestFinalRefinementDatabase(t *testing.T) {
 	if _, err = db.ExecContext(ctx, `INSERT INTO brief_points(brief_id,key,value,scope)VALUES($1,'palette','Natural green','global')`, direct.BriefID); err != nil {
 		t.Fatal(err)
 	}
+	if _, err = repo.Claim(ctx, user, direct.ID, image); !errors.Is(err, ErrBudgetUnset) {
+		t.Fatal("direct image bypassed budget", err)
+	}
+	fundTestProject(t, db, user, direct.ID)
 	if claimed, err := repo.Claim(ctx, user, direct.ID, image); err != nil || !claimed {
 		t.Fatal("direct claim", claimed, err)
 	}
@@ -167,6 +172,10 @@ func TestFinalRefinementDatabase(t *testing.T) {
 	}
 	if _, err = repo.Accept(ctx, user, direct.ID, refinement.ID); err != nil {
 		t.Fatal("direct refinement acceptance", err)
+	}
+	usage, err := NewBudgetRepository(db, testBudgetRates).Get(ctx, user, direct.ID)
+	if err != nil || usage.ReservedCents != 0 || usage.SpentCents != 60 || len(usage.Usage) != 2 {
+		t.Fatal("final generation/refinement ledger", usage, err)
 	}
 	directState, err := reviews.Get(ctx, user, direct.ID)
 	if err != nil || len(directState.Finals) != 2 || !directState.Finals[0].Accepted || directState.Finals[1].Accepted {

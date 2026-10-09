@@ -17,10 +17,17 @@ type FinalRefinementRepository interface {
 	Save(context.Context, *entity.FinalOutput) error
 	Accept(context.Context, string, string, string) (*entity.FinalOutput, error)
 }
-type finalRefinementRepository struct{ db *sql.DB }
+type finalRefinementRepository struct {
+	db    *sql.DB
+	rates entity.GenerationRates
+}
 
-func NewFinalRefinementRepository(db *sql.DB) FinalRefinementRepository {
-	return &finalRefinementRepository{db}
+func NewFinalRefinementRepository(db *sql.DB, rates ...entity.GenerationRates) FinalRefinementRepository {
+	var configured entity.GenerationRates
+	if len(rates) > 0 {
+		configured = rates[0]
+	}
+	return &finalRefinementRepository{db, configured}
 }
 
 const finalColumns = `f.id,f.parent_id,f.request_key,f.image_index,f.prompt,f.reason,f.provider_id,f.status,f.accepted,f.created_at,f.brief_version,f.kind,f.job_ids,f.outputs,f.object_key`
@@ -97,6 +104,13 @@ func (r *finalRefinementRepository) Claim(ctx context.Context, user, project str
 	if err != nil {
 		return false, err
 	}
+	operation := f.Kind
+	if f.ParentID != nil {
+		operation += "_refinement"
+	}
+	if err = reserveBudget(ctx, tx, r.rates, project, f.ID, operation, f.Reason); err != nil {
+		return false, err
+	}
 	return true, tx.Commit()
 }
 func (r *finalRefinementRepository) Save(ctx context.Context, f *entity.FinalOutput) error {
@@ -106,8 +120,23 @@ func (r *finalRefinementRepository) Save(ctx context.Context, f *entity.FinalOut
 	if err != nil {
 		return err
 	}
-	_, err = r.db.ExecContext(ctx, `UPDATE project_final_outputs SET provider_id=$2,status=$3,outputs=$4 WHERE id=$1 AND status IN ('submitting','unknown','queued','in_progress')`, f.ID, f.ProviderID, f.Status, string(outputs))
-	return err
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	var status string
+	err = tx.QueryRowContext(ctx, `UPDATE project_final_outputs SET provider_id=$2,status=$3,outputs=$4 WHERE id=$1 AND status IN ('submitting','unknown','queued','in_progress') RETURNING status`, f.ID, f.ProviderID, f.Status, string(outputs)).Scan(&status)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	if err = settleBudget(ctx, tx, f.ID, status, f.SubmissionRejected); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 func (r *finalRefinementRepository) Accept(ctx context.Context, user, project, id string) (*entity.FinalOutput, error) {
 	ctx, cancel := context.WithTimeout(ctx, queryTimeout)

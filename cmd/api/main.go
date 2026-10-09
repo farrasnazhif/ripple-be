@@ -4,7 +4,10 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
+
+	"github.com/farrasnazhif/ripple-be/internal/entity"
 
 	_ "github.com/farrasnazhif/ripple-be/docs"
 	"github.com/farrasnazhif/ripple-be/internal/database"
@@ -49,6 +52,15 @@ func main() {
 	defer db.Close()
 	log.Println("database connection pool established")
 
+	rates := entity.GenerationRates{}
+	for operation, variable := range map[string]string{"image": "AI_IMAGE_ESTIMATE_CENTS", "video": "AI_VIDEO_ESTIMATE_CENTS", "image_refinement": "AI_IMAGE_REFINEMENT_ESTIMATE_CENTS", "video_refinement": "AI_VIDEO_REFINEMENT_ESTIMATE_CENTS"} {
+		value, err := strconv.ParseInt(getEnv(variable, "0"), 10, 64)
+		if err != nil || value < 0 || value > 100000000 {
+			log.Fatalf("%s must be an integer from 0 to 100000000 USD cents", variable)
+		}
+		rates[operation] = value
+	}
+	budgetHandler := handler.NewBudgetHandler(service.NewBudgetService(repository.NewBudgetRepository(db, rates)))
 	// Repositories
 	userRepo := repository.NewUserRepository(db)
 	projectRepo := repository.NewProjectRepository(db)
@@ -78,7 +90,7 @@ func main() {
 	briefHandler := handler.NewBriefHandler(briefSvc)
 
 	shotRepo := repository.NewStoryboardRepository(db)
-	jobRepo := repository.NewGenerationRepository(db)
+	jobRepo := repository.NewGenerationRepository(db, rates)
 	var mediaGenerator service.MediaGenerator
 	var mediaEditor service.FinalMediaEditor
 	if key := os.Getenv("HF_API_KEY"); key != "" {
@@ -92,9 +104,10 @@ func main() {
 	if key, model := os.Getenv("OPENAI_API_KEY"), os.Getenv("OPENAI_MODEL"); key != "" && model != "" {
 		reviewAI = openai.New(key, model)
 	}
-	reviewHandler := handler.NewReviewHandler(service.NewReviewService(reviewRepo, projectRepo, briefRepo, shotRepo, briefStorage), reviewAI, service.NewFinalOutputService(reviewRepo, projectRepo, briefRepo, shotRepo, jobRepo, briefStorage), service.NewFinalRefinementService(repository.NewFinalRefinementRepository(db), mediaEditor, briefStorage))
+	reviewHandler := handler.NewReviewHandler(service.NewReviewService(reviewRepo, projectRepo, briefRepo, shotRepo, briefStorage), reviewAI, service.NewFinalOutputService(reviewRepo, projectRepo, briefRepo, shotRepo, jobRepo, briefStorage), service.NewFinalRefinementService(repository.NewFinalRefinementRepository(db, rates), mediaEditor, briefStorage))
 	// Router
 	mux := router.New(router.Config{
+		Budget:          budgetHandler,
 		Workflow:        workflowHandler,
 		Review:          reviewHandler,
 		FrontendURL:     frontendURL,

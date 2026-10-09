@@ -105,6 +105,12 @@ func (h *WorkflowHandler) ListJobs(w http.ResponseWriter, r *http.Request) {
 }
 func workflowError(w http.ResponseWriter, err error) {
 	switch {
+	case errors.Is(err, repository.ErrBudgetRate):
+		helpers.ErrorResponse(w, 503, err.Error())
+	case errors.Is(err, repository.ErrBudgetExceeded), errors.Is(err, repository.ErrBudgetUnset):
+		helpers.ErrorResponse(w, 402, err.Error())
+	case errors.Is(err, repository.ErrBudgetLimit):
+		helpers.ErrorResponse(w, 400, err.Error())
 	case errors.Is(err, entity.ErrNotFound):
 		helpers.ErrorResponse(w, 404, "project, shot or generation not found")
 	case errors.Is(err, service.ErrInvalidDirectImage), errors.Is(err, service.ErrInvalidFinalRefinement), errors.Is(err, service.ErrFinalReference), errors.Is(err, service.ErrInvalidReview), errors.Is(err, service.ErrFinalNotReady), errors.Is(err, service.ErrInvalidStoryboard), errors.Is(err, service.ErrInvalidGeneration), errors.Is(err, service.ErrNoBriefText):

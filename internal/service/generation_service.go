@@ -77,6 +77,7 @@ func (s *GenerationService) Submit(ctx context.Context, user, project, shot, kin
 		j.Status = "unknown"
 		if errors.Is(submitErr, higgsfield.ErrSubmissionRejected) {
 			j.Status = "failed"
+			j.SubmissionRejected = true
 		}
 	} else {
 		applyProvider(j, result)
