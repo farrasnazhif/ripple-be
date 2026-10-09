@@ -41,6 +41,10 @@ func TestProjectEditingAndDeletionDatabase(t *testing.T) {
 	if err != nil || p.CreatedBy != name {
 		t.Fatal(p, err)
 	}
+	var budgetLimit int64
+	if err = db.QueryRowContext(ctx, `SELECT limit_cents FROM project_budgets WHERE project_id=$1`, p.ID).Scan(&budgetLimit); err != nil || budgetLimit != 5000 {
+		t.Fatal("new project should receive the $50 default budget", budgetLimit, err)
+	}
 	fundTestProject(t, db, user, p.ID)
 	oldTime := p.CreatedAt
 	if err = briefs.SetText(ctx, user, p.BriefID, "Original brief"); err != nil {

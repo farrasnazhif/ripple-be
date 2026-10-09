@@ -120,7 +120,7 @@ make migrate-up
 **4. Run the server**
 
 ```bash
-go run cmd/api/main.go
+make run
 ```
 
 Or with hot reload:
@@ -221,7 +221,7 @@ Image generation uses POST `/projects/{projectID}/images` with `request_key` and
 
 ## Project media budgets
 
-Apply migration 28 (`make migrate-up`) and restart the API. Each project now has a **Budget** action in the project table and on the canvas. Set a USD cap before submitting new paid media requests. Existing projects and demo media are preserved, and historical charges are not backfilled.
+Apply migrations 28 and 29 (`make migrate-up`) and restart the API. Each existing project and every new project now starts with a **$50 media budget**. Owners can change the cap from **Budget** in the project table or canvas. Existing custom caps are preserved, and historical charges are not backfilled.
 
 Configure conservative per-request estimates in `.envrc` using the current model prices for your Higgsfield API account:
 
@@ -237,10 +237,10 @@ Values are integer USD cents. Zero means unpriced and blocks that operation; no 
 Authenticated, owner-scoped endpoints:
 
 - `GET /projects/{projectID}/budget`: cap, available funds, reserved funds, estimated spending, configured rates and latest 100 ledger entries. Totals include all entries.
-- `PUT /projects/{projectID}/budget`: `{ "limit_cents": 10000 }` sets a $100 project cap. A cap may range from zero to $1,000,000 and cannot be lowered below reserved plus estimated spent amounts.
+- `PUT /projects/{projectID}/budget`: `{ "limit_cents": 5000 }` sets a $50 project cap. A cap may range from zero to $1,000,000 and cannot be lowered below reserved plus estimated spent amounts.
 
 All clip generations/regenerations, direct final-image generations and final image/video refinements reserve estimated cost in the same database transaction that claims the job. The project row lock prevents concurrent requests across these routes from exceeding the cap. Idempotent retries do not create another reservation. Missing budgets / insufficient funds return HTTP 402; missing rates return HTTP 503. The UI displays a cost confirmation before submitting media and warns once 80% of the cap is allocated.
 
 Submitting, unknown, queued and in-progress requests retain their reservations. A confirmed provider submission rejection releases its reservation. Terminal requests accepted by the provider move to **estimated spent**, including failures, cancellation and moderation outcomes: no refund is assumed. Existing status polling updates the ledger; an unknown submission needs provider-dashboard reconciliation and is never automatically resubmitted. The ledger records the project owner who requested generation, operation, description, estimated amount, budget state and job status. Deleting the project also deletes its ledger, so export any required accounting records first.
 
-This is an estimate-based project media budget, not a provider invoice or an agency-wide hard dollar limit. Provider balance reconciliation, actual charge/refund reconciliation, monthly agency limits, team permissions and member allowances are not implemented. ChatGPT summaries/storyboard drafts, storage and local final-video assembly are outside this budget. Seed demos contain no ledger charges because no paid provider generation occurs.
+This is an estimate-based $50 default per project, not a provider invoice or an agency-wide hard dollar limit. Provider balance reconciliation, actual charge/refund reconciliation, monthly agency limits, team permissions and member allowances are not implemented. ChatGPT summaries/storyboard drafts, storage and local final-video assembly are outside this budget. Seed demos contain no ledger charges because no paid provider generation occurs.

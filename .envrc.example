@@ -24,7 +24,7 @@ export R2_SECRET_ACCESS_KEY=
 export R2_BUCKET=
 
 # Conservative USD cents per media request. 0 disables that operation until priced.
-export AI_IMAGE_ESTIMATE_CENTS=0
+export AI_IMAGE_ESTIMATE_CENTS=1
 export AI_VIDEO_ESTIMATE_CENTS=0
-export AI_IMAGE_REFINEMENT_ESTIMATE_CENTS=0
+export AI_IMAGE_REFINEMENT_ESTIMATE_CENTS=1
 export AI_VIDEO_REFINEMENT_ESTIMATE_CENTS=0
