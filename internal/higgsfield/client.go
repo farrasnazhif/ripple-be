@@ -19,6 +19,8 @@ const (
 )
 
 var requestIDPattern = regexp.MustCompile(`^[A-Za-z0-9_-]+$`)
+var ErrSubmissionRejected = errors.New("Higgsfield rejected the submission")
+
 var ErrNotConfigured = errors.New("Higgsfield API is not configured")
 
 type Job struct {
@@ -74,11 +76,27 @@ func (c *Client) Submit(ctx context.Context, kind, prompt string) (Job, error) {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		if resp.StatusCode >= 400 && resp.StatusCode < 500 && resp.StatusCode != http.StatusRequestTimeout {
+			return Job{}, fmt.Errorf("%w: HTTP %d", ErrSubmissionRejected, resp.StatusCode)
+		}
 		return Job{}, fmt.Errorf("Higgsfield API returned HTTP %d", resp.StatusCode)
 	}
-	var job Job
-	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&job); err != nil {
+	var result struct {
+		RequestID string `json:"request_id"`
+		Status    string `json:"status"`
+		Images    []struct {
+			URL string `json:"url"`
+		} `json:"images"`
+		Video struct {
+			URL string `json:"url"`
+		} `json:"video"`
+	}
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&result); err != nil {
 		return Job{}, err
+	}
+	job := Job{RequestID: result.RequestID, Status: result.Status, Video: result.Video.URL}
+	for _, image := range result.Images {
+		job.Images = append(job.Images, image.URL)
 	}
 	if job.RequestID == "" {
 		return Job{}, fmt.Errorf("Higgsfield returned no request ID")

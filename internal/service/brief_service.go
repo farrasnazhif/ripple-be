@@ -19,6 +19,7 @@ var ErrInvalidAttachment = errors.New("invalid attachment")
 var ErrStorageUnavailable = errors.New("attachment storage unavailable")
 var ErrEmptySummary = errors.New("summary is empty")
 var ErrAIUnavailable = errors.New("ChatGPT API is not configured")
+var ErrSummaryInputsTooLarge = errors.New("summary inputs exceed 10 supported files or 50 MiB; use a manual summary")
 var ErrNoBriefText = errors.New("brief text is empty")
 
 type BriefStorage interface {
@@ -29,7 +30,7 @@ type BriefStorage interface {
 }
 
 type BriefSummarizer interface {
-	SummarizeBrief(ctx context.Context, rawText string) (string, entity.TokenUsage, error)
+	SummarizeBrief(ctx context.Context, rawText string, references ...entity.BriefReference) (string, entity.TokenUsage, error)
 }
 
 type BriefService struct {
@@ -40,6 +41,10 @@ type BriefService struct {
 
 func NewBriefService(repo repository.BriefRepository, storage BriefStorage, summarizer BriefSummarizer) *BriefService {
 	return &BriefService{repo: repo, storage: storage, summarizer: summarizer}
+}
+
+func (s *BriefService) AttachmentStorageAvailable() bool {
+	return s.storage != nil
 }
 
 func (s *BriefService) Create(ctx context.Context, userID, rawText string) (*entity.Brief, error) {
@@ -58,14 +63,39 @@ func (s *BriefService) DraftSummary(ctx context.Context, userID, briefID string)
 	if err != nil {
 		return "", entity.TokenUsage{}, err
 	}
-	if strings.TrimSpace(brief.RawText) == "" {
+	attachments, err := s.repo.ListAttachments(ctx, userID, briefID)
+	if err != nil {
+		return "", entity.TokenUsage{}, err
+	}
+	references := []entity.BriefReference{}
+	var total int64
+	for _, file := range attachments {
+		switch file.ContentType {
+		case "image/png", "image/jpeg", "image/webp", "image/gif", "application/pdf":
+		default:
+			continue
+		}
+		total += file.SizeBytes
+		if len(references) >= 10 || total > 50<<20 {
+			return "", entity.TokenUsage{}, ErrSummaryInputsTooLarge
+		}
+		if s.storage == nil {
+			return "", entity.TokenUsage{}, ErrStorageUnavailable
+		}
+		url, err := s.storage.PresignDownload(ctx, file.ObjectKey)
+		if err != nil {
+			return "", entity.TokenUsage{}, err
+		}
+		references = append(references, entity.BriefReference{URL: url, ContentType: file.ContentType, FileName: file.FileName})
+	}
+	if strings.TrimSpace(brief.RawText) == "" && len(references) == 0 {
 		return "", entity.TokenUsage{}, ErrNoBriefText
 	}
-	return s.summarizer.SummarizeBrief(ctx, brief.RawText)
+	return s.summarizer.SummarizeBrief(ctx, brief.RawText, references...)
 }
 
 func (s *BriefService) ConfirmSummary(ctx context.Context, userID, briefID, summary string) error {
-	if strings.TrimSpace(summary) == "" {
+	if strings.TrimSpace(summary) == "" || len(summary) > 100000 {
 		return ErrEmptySummary
 	}
 	return s.repo.ConfirmSummary(ctx, userID, briefID, summary)
@@ -154,4 +184,14 @@ func (s *BriefService) DownloadAttachment(ctx context.Context, userID, briefID, 
 		return "", ErrInvalidAttachment
 	}
 	return s.storage.PresignDownload(ctx, a.ObjectKey)
+}
+
+func (s *BriefService) SetText(ctx context.Context, user, id, text string) error {
+	if strings.TrimSpace(text) == "" || len(text) > 100000 {
+		return ErrNoBriefText
+	}
+	if _, err := s.repo.Get(ctx, user, id); err != nil {
+		return err
+	}
+	return s.repo.SetText(ctx, user, id, text)
 }

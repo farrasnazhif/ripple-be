@@ -9,6 +9,7 @@ import (
 )
 
 type BriefRepository interface {
+	SetText(context.Context, string, string, string) error
 	Create(ctx context.Context, userID, rawText string) (*entity.Brief, error)
 	Get(ctx context.Context, userID, briefID string) (*entity.Brief, error)
 	CreateAttachment(ctx context.Context, userID string, attachment *entity.BriefAttachment) error
@@ -44,14 +45,30 @@ func (r *briefRepository) Get(ctx context.Context, userID, briefID string) (*ent
 func (r *briefRepository) ConfirmSummary(ctx context.Context, userID, briefID, summary string) error {
 	ctx, cancel := context.WithTimeout(ctx, queryTimeout)
 	defer cancel()
-	result, err := r.db.ExecContext(ctx, `UPDATE briefs SET summary = $3 WHERE id = $1 AND user_id = $2`, briefID, userID, summary)
+	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
-	if n, _ := result.RowsAffected(); n == 0 {
+	defer tx.Rollback()
+	var current string
+	err = tx.QueryRowContext(ctx, `SELECT COALESCE(summary,'') FROM briefs WHERE id=$1 AND user_id=$2 FOR UPDATE`, briefID, userID).Scan(&current)
+	if errors.Is(err, sql.ErrNoRows) {
 		return entity.ErrNotFound
 	}
-	return nil
+	if err != nil {
+		return err
+	}
+	var exists bool
+	if err = tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM storyboard_shots s JOIN briefs b ON b.project_id=s.project_id WHERE b.id=$1)`, briefID).Scan(&exists); err != nil {
+		return err
+	}
+	if exists && current != summary {
+		return ErrWorkflowConflict
+	}
+	if _, err = tx.ExecContext(ctx, `UPDATE briefs SET summary=$2 WHERE id=$1`, briefID, summary); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 func (r *briefRepository) CreateAttachment(ctx context.Context, userID string, a *entity.BriefAttachment) error {
@@ -111,6 +128,20 @@ func (r *briefRepository) CompleteAttachment(ctx context.Context, userID, briefI
 	}
 	if n, _ := result.RowsAffected(); n == 0 {
 		return entity.ErrNotFound
+	}
+	return nil
+}
+
+// SetText captures text once; the original brief is immutable after capture.
+func (r *briefRepository) SetText(ctx context.Context, user, id, text string) error {
+	ctx, cancel := context.WithTimeout(ctx, queryTimeout)
+	defer cancel()
+	result, err := r.db.ExecContext(ctx, `UPDATE briefs SET raw_text=$3 WHERE id=$1 AND user_id=$2 AND (raw_text='' OR raw_text=$3) AND COALESCE(summary,'')=''`, id, user, text)
+	if err != nil {
+		return err
+	}
+	if n, _ := result.RowsAffected(); n == 0 {
+		return ErrWorkflowConflict
 	}
 	return nil
 }

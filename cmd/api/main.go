@@ -9,9 +9,8 @@ import (
 	_ "github.com/farrasnazhif/ripple-be/docs"
 	"github.com/farrasnazhif/ripple-be/internal/database"
 	"github.com/farrasnazhif/ripple-be/internal/handler"
-	"github.com/farrasnazhif/ripple-be/internal/mailer"
+	"github.com/farrasnazhif/ripple-be/internal/higgsfield"
 	"github.com/farrasnazhif/ripple-be/internal/openai"
-	"github.com/farrasnazhif/ripple-be/internal/paypal"
 	"github.com/farrasnazhif/ripple-be/internal/r2"
 	"github.com/farrasnazhif/ripple-be/internal/repository"
 	"github.com/farrasnazhif/ripple-be/internal/router"
@@ -20,7 +19,7 @@ import (
 
 //	@title			Ripple API
 //	@version		1.0
-//	@description	User authentication, profile management, and PayPal billing API
+//	@description	User authentication, profile management, and creative brief API
 
 //	@host		localhost:8080
 //	@BasePath	/api/v1
@@ -52,8 +51,7 @@ func main() {
 
 	// Repositories
 	userRepo := repository.NewUserRepository(db)
-	otpRepo := repository.NewOTPRepository(db)
-	billingRepo := repository.NewBillingRepository(db)
+	projectRepo := repository.NewProjectRepository(db)
 	briefRepo := repository.NewBriefRepository(db)
 	var briefStorage service.BriefStorage
 	if storage, err := r2.New(os.Getenv("R2_ACCOUNT_ID"), os.Getenv("R2_ACCESS_KEY_ID"), os.Getenv("R2_SECRET_ACCESS_KEY"), os.Getenv("R2_BUCKET")); err == nil {
@@ -62,24 +60,10 @@ func main() {
 		log.Println("R2 attachment storage is not configured")
 	}
 
-	// PayPal
-	paypalClient := paypal.NewClient(paypal.Config{
-		ClientID:  getEnv("PAYPAL_CLIENT_ID", ""),
-		Secret:    getEnv("PAYPAL_CLIENT_SECRET", ""),
-		BaseURL:   getEnv("PAYPAL_BASE_URL", "https://api-m.sandbox.paypal.com"),
-		PlanID:    getEnv("PAYPAL_PRO_PLAN_ID", ""),
-		WebhookID: getEnv("PAYPAL_WEBHOOK_ID", ""),
-		ReturnURL: getEnv("PAYPAL_RETURN_URL", frontendURL+"/billing/success"),
-		CancelURL: getEnv("PAYPAL_CANCEL_URL", frontendURL+"/billing/cancel"),
-	})
-
-	// Mailer
-	m := mailer.NewResend(getEnv("RESEND_API_KEY", ""), getEnv("FROM_EMAIL", "onboarding@resend.dev"))
-
 	// Services
-	authSvc := service.NewAuthService(userRepo, otpRepo, m, jwtSecret, env)
+	authSvc := service.NewAuthService(userRepo, jwtSecret)
 	userSvc := service.NewUserService(userRepo)
-	billingSvc := service.NewBillingService(billingRepo, userRepo, paypalClient)
+	projectSvc := service.NewProjectService(projectRepo)
 	var briefSummarizer service.BriefSummarizer
 	if key, model := os.Getenv("OPENAI_API_KEY"), os.Getenv("OPENAI_MODEL"); key != "" && model != "" {
 		briefSummarizer = openai.New(key, model)
@@ -89,23 +73,31 @@ func main() {
 	// Handlers
 	authHandler := handler.NewAuthHandler(authSvc)
 	userHandler := handler.NewUserHandler(userSvc)
-	billingHandler := handler.NewBillingHandler(billingSvc)
+	projectHandler := handler.NewProjectHandler(projectSvc)
 	briefHandler := handler.NewBriefHandler(briefSvc)
 
+	shotRepo := repository.NewStoryboardRepository(db)
+	jobRepo := repository.NewGenerationRepository(db)
+	var generator service.MediaGenerator
+	if key := os.Getenv("HF_API_KEY"); key != "" {
+		generator = higgsfield.New(key)
+	}
+	workflowHandler := handler.NewWorkflowHandler(service.NewStoryboardService(projectRepo, briefRepo, shotRepo), service.NewGenerationService(shotRepo, jobRepo, generator))
 	// Router
 	mux := router.New(router.Config{
+		Workflow:        workflowHandler,
 		FrontendURL:     frontendURL,
 		JWTSecret:       jwtSecret,
 		RateLimit:       30,
 		RegisterLimit:   5,
 		RateLimitWindow: time.Minute,
-	}, authHandler, userHandler, billingHandler, briefHandler, userRepo)
+	}, authHandler, userHandler, projectHandler, briefHandler, userRepo)
 
 	// Server
 	srv := &http.Server{
 		Addr:         addr,
 		Handler:      mux,
-		WriteTimeout: 30 * time.Second,
+		WriteTimeout: 60 * time.Second,
 		ReadTimeout:  10 * time.Second,
 		IdleTimeout:  time.Minute,
 	}

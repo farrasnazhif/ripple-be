@@ -28,7 +28,8 @@ func Auth(jwtSecret string, userRepo repository.UserRepository) func(http.Handle
 				return
 			}
 
-			if _, err := userRepo.GetByID(r.Context(), userID); err != nil {
+			user, err := userRepo.GetByID(r.Context(), userID)
+			if err != nil || !user.IsActive {
 				writeError(w, http.StatusUnauthorized, "invalid token")
 				return
 			}

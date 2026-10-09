@@ -15,104 +15,47 @@ import (
 )
 
 type AuthService interface {
-	Register(ctx context.Context, req request.Register) error
-	SendOTP(ctx context.Context, req request.SendOTP) (string, error)
-	VerifyOTP(ctx context.Context, req request.VerifyOTP) (*response.UserWithToken, error)
+	Register(ctx context.Context, req request.Register) (*response.UserWithToken, error)
 	Login(ctx context.Context, req request.Login) (*response.UserWithToken, error)
 }
 
 type authService struct {
 	userRepo  repository.UserRepository
-	otpRepo   repository.OTPRepository
-	mailer    Mailer
 	jwtSecret string
-	env       string
 }
 
-type Mailer interface {
-	Send(templateFile, username, email string, data any, isSandbox bool) error
-}
-
-func NewAuthService(userRepo repository.UserRepository, otpRepo repository.OTPRepository, mailer Mailer, jwtSecret, env string) AuthService {
+func NewAuthService(userRepo repository.UserRepository, jwtSecret string) AuthService {
 	return &authService{
 		userRepo:  userRepo,
-		otpRepo:   otpRepo,
-		mailer:    mailer,
 		jwtSecret: jwtSecret,
-		env:       env,
 	}
 }
 
-func (s *authService) Register(ctx context.Context, req request.Register) error {
+func (s *authService) Register(ctx context.Context, req request.Register) (*response.UserWithToken, error) {
+	if len(req.Password) > 72 {
+		return nil, entity.ErrPasswordTooLong
+	}
 	_, err := s.userRepo.GetByEmail(ctx, req.Email)
 	if err == nil {
-		return entity.ErrEmailExists
+		return nil, entity.ErrEmailExists
 	}
 	if !errors.Is(err, entity.ErrNotFound) {
-		return err
+		return nil, err
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	user := &entity.User{
 		Username:     req.Username,
 		Email:        req.Email,
 		PasswordHash: hash,
-		IsActive:     false,
+		IsActive:     true,
 	}
 
 	if err := s.userRepo.Create(ctx, user); err != nil {
-		return err
-	}
-
-	otp, err := s.otpRepo.Create(ctx, req.Email, entity.OTPPurposeRegistration, 10*time.Minute)
-	if err != nil {
-		return err
-	}
-
-	vars := struct{ OTPCode string }{OTPCode: otp.Code}
-	isSandbox := s.env != "production"
-	return s.mailer.Send("user_otp.tmpl", "User", req.Email, vars, isSandbox)
-}
-
-func (s *authService) SendOTP(ctx context.Context, req request.SendOTP) (string, error) {
-	_, err := s.userRepo.GetByEmail(ctx, req.Email)
-	if err == nil {
-		return "", entity.ErrEmailExists
-	}
-	if !errors.Is(err, entity.ErrNotFound) {
-		return "", err
-	}
-
-	otp, err := s.otpRepo.Create(ctx, req.Email, entity.OTPPurposeRegistration, 10*time.Minute)
-	if err != nil {
-		return "", err
-	}
-
-	vars := struct{ OTPCode string }{OTPCode: otp.Code}
-	isSandbox := s.env != "production"
-	if err := s.mailer.Send("user_otp.tmpl", "User", req.Email, vars, isSandbox); err != nil {
-		return "", err
-	}
-	return "OTP sent successfully", nil
-}
-
-func (s *authService) VerifyOTP(ctx context.Context, req request.VerifyOTP) (*response.UserWithToken, error) {
-	_, err := s.otpRepo.Verify(ctx, req.Email, req.Code, entity.OTPPurposeRegistration)
-	if err != nil {
-		return nil, err
-	}
-
-	user, err := s.userRepo.GetByEmail(ctx, req.Email)
-	if err != nil {
-		return nil, err
-	}
-
-	user.IsActive = true
-	if err := s.userRepo.Update(ctx, user); err != nil {
 		return nil, err
 	}
 
@@ -123,8 +66,8 @@ func (s *authService) VerifyOTP(ctx context.Context, req request.VerifyOTP) (*re
 
 	return &response.UserWithToken{
 		ID: user.ID, Username: user.Username, Email: user.Email,
-		IsActive: user.IsActive, Role: user.Role, Credits: user.Credits,
-		Token: token,
+		IsActive: user.IsActive,
+		Token:    token,
 	}, nil
 }
 
@@ -152,8 +95,8 @@ func (s *authService) Login(ctx context.Context, req request.Login) (*response.U
 
 	return &response.UserWithToken{
 		ID: user.ID, Username: user.Username, Email: user.Email,
-		IsActive: user.IsActive, Role: user.Role, Credits: user.Credits,
-		Token: token,
+		IsActive: user.IsActive,
+		Token:    token,
 	}, nil
 }
 

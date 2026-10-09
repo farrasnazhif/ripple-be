@@ -7,6 +7,7 @@ import (
 
 	"github.com/farrasnazhif/ripple-be/internal/entity"
 	"github.com/farrasnazhif/ripple-be/internal/helpers"
+	"github.com/farrasnazhif/ripple-be/internal/repository"
 	"github.com/farrasnazhif/ripple-be/internal/service"
 	"github.com/go-chi/chi/v5"
 )
@@ -16,6 +17,10 @@ var uuidPath = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}
 type BriefHandler struct{ service *service.BriefService }
 
 func NewBriefHandler(s *service.BriefService) *BriefHandler { return &BriefHandler{service: s} }
+
+func (h *BriefHandler) StorageStatus(w http.ResponseWriter, r *http.Request) {
+	helpers.SuccessResponse(w, http.StatusOK, "attachment storage status", map[string]bool{"available": h.service.AttachmentStorageAvailable()})
+}
 
 func (h *BriefHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var input struct {
@@ -150,19 +155,39 @@ func (h *BriefHandler) DownloadAttachment(w http.ResponseWriter, r *http.Request
 
 func briefError(w http.ResponseWriter, err error) {
 	switch {
+	case errors.Is(err, repository.ErrWorkflowConflict):
+		helpers.ErrorResponse(w, 409, err.Error())
 	case errors.Is(err, entity.ErrNotFound):
 		helpers.ErrorResponse(w, http.StatusNotFound, "brief or attachment not found")
 	case errors.Is(err, service.ErrInvalidAttachment):
 		helpers.ErrorResponse(w, http.StatusBadRequest, err.Error())
-	case errors.Is(err, service.ErrEmptySummary):
+	case errors.Is(err, service.ErrEmptySummary), errors.Is(err, service.ErrSummaryInputsTooLarge):
 		helpers.ErrorResponse(w, http.StatusBadRequest, err.Error())
 	case errors.Is(err, service.ErrStorageUnavailable):
 		helpers.ErrorResponse(w, http.StatusServiceUnavailable, err.Error())
 	case errors.Is(err, service.ErrAIUnavailable):
 		helpers.ErrorResponse(w, http.StatusServiceUnavailable, err.Error())
 	case errors.Is(err, service.ErrNoBriefText):
-		helpers.ErrorResponse(w, http.StatusBadRequest, "brief text is empty; attachment contents are not extracted yet")
+		helpers.ErrorResponse(w, http.StatusBadRequest, "add brief text or a supported image/PDF before generating a summary")
 	default:
 		helpers.ErrorResponse(w, http.StatusInternalServerError, "internal server error")
 	}
+}
+
+func (h *BriefHandler) SetText(w http.ResponseWriter, r *http.Request) {
+	if !workflowIDs(w, r, "briefID") {
+		return
+	}
+	var input struct {
+		Text string `json:"raw_text"`
+	}
+	if err := helpers.ReadJSON(r, &input); err != nil {
+		helpers.ErrorResponse(w, 400, err.Error())
+		return
+	}
+	if err := h.service.SetText(r.Context(), helpers.UserIDFromContext(r), chi.URLParam(r, "briefID"), input.Text); err != nil {
+		workflowError(w, err)
+		return
+	}
+	helpers.SuccessResponse(w, 200, "brief text captured", nil)
 }

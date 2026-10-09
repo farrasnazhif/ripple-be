@@ -52,80 +52,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/auth/otp/send": {
-            "post": {
-                "description": "Send OTP code to email for verification",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth"
-                ],
-                "summary": "Send OTP for registration",
-                "parameters": [
-                    {
-                        "description": "Email payload",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_farrasnazhif_ripple-be_internal_dto_request.SendOTP"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK"
-                    },
-                    "400": {
-                        "description": "Bad Request"
-                    }
-                }
-            }
-        },
-        "/auth/otp/verify": {
-            "post": {
-                "description": "Verify OTP code and activate user account, returns JWT token",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth"
-                ],
-                "summary": "Verify OTP and activate account",
-                "parameters": [
-                    {
-                        "description": "OTP verification payload",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_farrasnazhif_ripple-be_internal_dto_request.VerifyOTP"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_farrasnazhif_ripple-be_internal_dto_response.UserWithToken"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request"
-                    }
-                }
-            }
-        },
         "/auth/register": {
             "post": {
-                "description": "Create a user account and send OTP for verification",
+                "description": "Create an active account and return a JWT token",
                 "consumes": [
                     "application/json"
                 ],
@@ -149,100 +78,10 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "201": {
-                        "description": "Created"
-                    },
-                    "400": {
-                        "description": "Bad Request"
-                    }
-                }
-            }
-        },
-        "/billing/paypal/subscriptions": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Create a new Pro subscription via PayPal",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "billing"
-                ],
-                "summary": "Create PayPal subscription",
-                "responses": {
-                    "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/github_com_farrasnazhif_ripple-be_internal_dto_response.Subscription"
+                            "$ref": "#/definitions/github_com_farrasnazhif_ripple-be_internal_dto_response.UserWithToken"
                         }
-                    },
-                    "401": {
-                        "description": "Unauthorized"
-                    },
-                    "500": {
-                        "description": "Internal Server Error"
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Cancel the current Pro subscription",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "billing"
-                ],
-                "summary": "Cancel PayPal subscription",
-                "parameters": [
-                    {
-                        "description": "Cancellation reason",
-                        "name": "body",
-                        "in": "body",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_farrasnazhif_ripple-be_internal_dto_request.CancelSubscription"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK"
-                    },
-                    "401": {
-                        "description": "Unauthorized"
-                    },
-                    "500": {
-                        "description": "Internal Server Error"
-                    }
-                }
-            }
-        },
-        "/billing/paypal/webhook": {
-            "post": {
-                "description": "Handle PayPal subscription webhook events",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "billing"
-                ],
-                "summary": "PayPal webhook",
-                "responses": {
-                    "200": {
-                        "description": "OK"
                     },
                     "400": {
                         "description": "Bad Request"
@@ -250,30 +89,98 @@ const docTemplate = `{
                 }
             }
         },
-        "/users/billing": {
+        "/projects": {
             "get": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get the authenticated user's billing and subscription info",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "users"
+                    "projects"
                 ],
-                "summary": "Get user billing info",
+                "summary": "List owned projects",
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_farrasnazhif_ripple-be_internal_dto_response.UserBilling"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/github_com_farrasnazhif_ripple-be_internal_entity.Project"
+                            }
                         }
-                    },
-                    "401": {
-                        "description": "Unauthorized"
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "projects"
+                ],
+                "summary": "Create a project",
+                "parameters": [
+                    {
+                        "description": "Project name and optional description",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_farrasnazhif_ripple-be_internal_dto_request.ProjectCreate"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_farrasnazhif_ripple-be_internal_entity.Project"
+                        }
+                    }
+                }
+            }
+        },
+        "/projects/{projectID}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "projects"
+                ],
+                "summary": "Get an owned project",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Project ID",
+                        "name": "projectID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_farrasnazhif_ripple-be_internal_entity.Project"
+                        }
                     }
                 }
             }
@@ -308,14 +215,6 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "github_com_farrasnazhif_ripple-be_internal_dto_request.CancelSubscription": {
-            "type": "object",
-            "properties": {
-                "reason": {
-                    "type": "string"
-                }
-            }
-        },
         "github_com_farrasnazhif_ripple-be_internal_dto_request.Login": {
             "type": "object",
             "required": [
@@ -327,6 +226,17 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "password": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_farrasnazhif_ripple-be_internal_dto_request.ProjectCreate": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "name": {
                     "type": "string"
                 }
             }
@@ -346,7 +256,7 @@ const docTemplate = `{
                 "password": {
                     "type": "string",
                     "maxLength": 72,
-                    "minLength": 3
+                    "minLength": 15
                 },
                 "username": {
                     "type": "string",
@@ -354,52 +264,9 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_farrasnazhif_ripple-be_internal_dto_request.SendOTP": {
-            "type": "object",
-            "required": [
-                "email"
-            ],
-            "properties": {
-                "email": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_farrasnazhif_ripple-be_internal_dto_request.VerifyOTP": {
-            "type": "object",
-            "required": [
-                "code",
-                "email"
-            ],
-            "properties": {
-                "code": {
-                    "type": "string"
-                },
-                "email": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_farrasnazhif_ripple-be_internal_dto_response.Subscription": {
-            "type": "object",
-            "properties": {
-                "approve_url": {
-                    "type": "string"
-                },
-                "status": {
-                    "type": "string"
-                },
-                "subscription_id": {
-                    "type": "string"
-                }
-            }
-        },
         "github_com_farrasnazhif_ripple-be_internal_dto_response.User": {
             "type": "object",
             "properties": {
-                "credits": {
-                    "type": "integer"
-                },
                 "email": {
                     "type": "string"
                 },
@@ -408,35 +275,6 @@ const docTemplate = `{
                 },
                 "is_active": {
                     "type": "boolean"
-                },
-                "role": {
-                    "type": "string"
-                },
-                "username": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_farrasnazhif_ripple-be_internal_dto_response.UserBilling": {
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "type": "string"
-                },
-                "email": {
-                    "type": "string"
-                },
-                "expired_at": {
-                    "type": "string"
-                },
-                "role": {
-                    "type": "string"
-                },
-                "subscription_status": {
-                    "type": "string"
-                },
-                "userId": {
-                    "type": "string"
                 },
                 "username": {
                     "type": "string"
@@ -446,9 +284,6 @@ const docTemplate = `{
         "github_com_farrasnazhif_ripple-be_internal_dto_response.UserWithToken": {
             "type": "object",
             "properties": {
-                "credits": {
-                    "type": "integer"
-                },
                 "email": {
                     "type": "string"
                 },
@@ -458,13 +293,30 @@ const docTemplate = `{
                 "is_active": {
                     "type": "boolean"
                 },
-                "role": {
-                    "type": "string"
-                },
                 "token": {
                     "type": "string"
                 },
                 "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_farrasnazhif_ripple-be_internal_entity.Project": {
+            "type": "object",
+            "properties": {
+                "brief_id": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
                     "type": "string"
                 }
             }
@@ -487,7 +339,7 @@ var SwaggerInfo = &swag.Spec{
 	BasePath:         "/api/v1",
 	Schemes:          []string{"http", "https"},
 	Title:            "Ripple API",
-	Description:      "User authentication, profile management, and PayPal billing API",
+	Description:      "User authentication, profile management, and creative brief API",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

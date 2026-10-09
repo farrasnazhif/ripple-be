@@ -1,0 +1,16 @@
+package entity
+
+import "time"
+
+type GenerationJob struct {
+	ID         string `json:"id"`
+	ShotID     string `json:"shot_id"`
+	RequestKey string `json:"request_key"`
+	Kind       string `json:"kind"`
+	Prompt     string `json:"prompt"`
+	ProviderID string `json:"provider_id"`
+	Status     string `json:"status"`
+	// shortcut: outputs use provider URLs, archive media in R2 before relying on permanent history.
+	Outputs   []string  `json:"outputs"`
+	CreatedAt time.Time `json:"created_at"`
+}

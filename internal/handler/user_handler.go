@@ -37,25 +37,3 @@ func (h *UserHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 
 	helpers.SuccessResponse(w, http.StatusOK, "User retrieved successfully", result)
 }
-
-// GetBilling godoc
-//
-//	@Summary		Get user billing info
-//	@Description	Get the authenticated user's billing and subscription info
-//	@Tags			users
-//	@Produce		json
-//	@Security		BearerAuth
-//	@Success		200	{object}	response.UserBilling
-//	@Failure		401
-//	@Router			/users/billing [get]
-func (h *UserHandler) GetBilling(w http.ResponseWriter, r *http.Request) {
-	userID := helpers.UserIDFromContext(r)
-
-	result, err := h.userService.GetBilling(r.Context(), userID)
-	if err != nil {
-		handleServiceError(w, err)
-		return
-	}
-
-	helpers.SuccessResponse(w, http.StatusOK, "User billing retrieved successfully", result)
-}

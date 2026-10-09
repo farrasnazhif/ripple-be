@@ -1,10 +1,5 @@
 basePath: /api/v1
 definitions:
-  github_com_farrasnazhif_ripple-be_internal_dto_request.CancelSubscription:
-    properties:
-      reason:
-        type: string
-    type: object
   github_com_farrasnazhif_ripple-be_internal_dto_request.Login:
     properties:
       email:
@@ -15,6 +10,13 @@ definitions:
     - email
     - password
     type: object
+  github_com_farrasnazhif_ripple-be_internal_dto_request.ProjectCreate:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+    type: object
   github_com_farrasnazhif_ripple-be_internal_dto_request.Register:
     properties:
       email:
@@ -22,7 +24,7 @@ definitions:
         type: string
       password:
         maxLength: 72
-        minLength: 3
+        minLength: 15
         type: string
       username:
         maxLength: 100
@@ -32,85 +34,47 @@ definitions:
     - password
     - username
     type: object
-  github_com_farrasnazhif_ripple-be_internal_dto_request.SendOTP:
-    properties:
-      email:
-        type: string
-    required:
-    - email
-    type: object
-  github_com_farrasnazhif_ripple-be_internal_dto_request.VerifyOTP:
-    properties:
-      code:
-        type: string
-      email:
-        type: string
-    required:
-    - code
-    - email
-    type: object
-  github_com_farrasnazhif_ripple-be_internal_dto_response.Subscription:
-    properties:
-      approve_url:
-        type: string
-      status:
-        type: string
-      subscription_id:
-        type: string
-    type: object
   github_com_farrasnazhif_ripple-be_internal_dto_response.User:
     properties:
-      credits:
-        type: integer
       email:
         type: string
       id:
         type: string
       is_active:
         type: boolean
-      role:
-        type: string
-      username:
-        type: string
-    type: object
-  github_com_farrasnazhif_ripple-be_internal_dto_response.UserBilling:
-    properties:
-      created_at:
-        type: string
-      email:
-        type: string
-      expired_at:
-        type: string
-      role:
-        type: string
-      subscription_status:
-        type: string
-      userId:
-        type: string
       username:
         type: string
     type: object
   github_com_farrasnazhif_ripple-be_internal_dto_response.UserWithToken:
     properties:
-      credits:
-        type: integer
       email:
         type: string
       id:
         type: string
       is_active:
         type: boolean
-      role:
-        type: string
       token:
         type: string
       username:
         type: string
     type: object
+  github_com_farrasnazhif_ripple-be_internal_entity.Project:
+    properties:
+      brief_id:
+        type: string
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+    type: object
 host: localhost:8080
 info:
   contact: {}
-  description: User authentication, profile management, and PayPal billing API
+  description: User authentication, profile management, and creative brief API
   title: Ripple API
   version: "1.0"
 paths:
@@ -138,57 +102,11 @@ paths:
       summary: Login user
       tags:
       - auth
-  /auth/otp/send:
-    post:
-      consumes:
-      - application/json
-      description: Send OTP code to email for verification
-      parameters:
-      - description: Email payload
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/github_com_farrasnazhif_ripple-be_internal_dto_request.SendOTP'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-        "400":
-          description: Bad Request
-      summary: Send OTP for registration
-      tags:
-      - auth
-  /auth/otp/verify:
-    post:
-      consumes:
-      - application/json
-      description: Verify OTP code and activate user account, returns JWT token
-      parameters:
-      - description: OTP verification payload
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/github_com_farrasnazhif_ripple-be_internal_dto_request.VerifyOTP'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/github_com_farrasnazhif_ripple-be_internal_dto_response.UserWithToken'
-        "400":
-          description: Bad Request
-      summary: Verify OTP and activate account
-      tags:
-      - auth
   /auth/register:
     post:
       consumes:
       - application/json
-      description: Create a user account and send OTP for verification
+      description: Create an active account and return a JWT token
       parameters:
       - description: Registration payload
         in: body
@@ -201,86 +119,71 @@ paths:
       responses:
         "201":
           description: Created
+          schema:
+            $ref: '#/definitions/github_com_farrasnazhif_ripple-be_internal_dto_response.UserWithToken'
         "400":
           description: Bad Request
       summary: Register a new user
       tags:
       - auth
-  /billing/paypal/subscriptions:
-    delete:
-      consumes:
-      - application/json
-      description: Cancel the current Pro subscription
-      parameters:
-      - description: Cancellation reason
-        in: body
-        name: body
-        schema:
-          $ref: '#/definitions/github_com_farrasnazhif_ripple-be_internal_dto_request.CancelSubscription'
+  /projects:
+    get:
       produces:
       - application/json
       responses:
         "200":
           description: OK
-        "401":
-          description: Unauthorized
-        "500":
-          description: Internal Server Error
+          schema:
+            items:
+              $ref: '#/definitions/github_com_farrasnazhif_ripple-be_internal_entity.Project'
+            type: array
       security:
       - BearerAuth: []
-      summary: Cancel PayPal subscription
+      summary: List owned projects
       tags:
-      - billing
+      - projects
     post:
-      description: Create a new Pro subscription via PayPal
+      consumes:
+      - application/json
+      parameters:
+      - description: Project name and optional description
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_farrasnazhif_ripple-be_internal_dto_request.ProjectCreate'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/github_com_farrasnazhif_ripple-be_internal_dto_response.Subscription'
-        "401":
-          description: Unauthorized
-        "500":
-          description: Internal Server Error
+            $ref: '#/definitions/github_com_farrasnazhif_ripple-be_internal_entity.Project'
       security:
       - BearerAuth: []
-      summary: Create PayPal subscription
+      summary: Create a project
       tags:
-      - billing
-  /billing/paypal/webhook:
-    post:
-      consumes:
-      - application/json
-      description: Handle PayPal subscription webhook events
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-        "400":
-          description: Bad Request
-      summary: PayPal webhook
-      tags:
-      - billing
-  /users/billing:
+      - projects
+  /projects/{projectID}:
     get:
-      description: Get the authenticated user's billing and subscription info
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectID
+        required: true
+        type: string
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_farrasnazhif_ripple-be_internal_dto_response.UserBilling'
-        "401":
-          description: Unauthorized
+            $ref: '#/definitions/github_com_farrasnazhif_ripple-be_internal_entity.Project'
       security:
       - BearerAuth: []
-      summary: Get user billing info
+      summary: Get an owned project
       tags:
-      - users
+      - projects
   /users/me:
     get:
       description: Get the authenticated user's profile

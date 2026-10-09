@@ -8,10 +8,10 @@ Deliver a single-user node canvas that imports a brief and storyboard, interpret
 
 ## Current foundation
 
-The repository already provides Go/Chi HTTP routing, PostgreSQL access, request validation, JSON responses, authentication, profiles, Resend email, and PayPal billing. Reuse its handler → service → repository structure and existing helpers.
+The repository already provides Go/Chi HTTP routing, PostgreSQL access, request validation, JSON responses, email/password authentication, and profiles. Reuse its handler → service → repository structure and existing helpers.
 The product frontend uses Next.js in the sibling `../ripple-fe` project. This repository holds the Go backend. Keep each Go feature in its own file per needed layer (`graph_handler.go`, `graph_service.go`, `graph_repository.go`, etc.); use small shared primitives only where necessary. Provider credentials stay on the Go server.
 
-The backend now has a synthetic graph endpoint, deterministic impact preview, brief drafts, R2 attachment storage, a ChatGPT summary draft endpoint, and a Higgsfield image/video client. Persisted shot links, decisions, versions, token ledger, and generation jobs remain to build. Existing `sessions`, `prds`, and `messages` tables describe a separate document workspace. Login and billing need no new work for this scope.
+The backend now has owner-scoped project create/list/detail endpoints, a synthetic graph endpoint, deterministic impact preview, brief drafts, R2 attachment storage, a ChatGPT summary draft endpoint, and persisted storyboard shots plus owner-scoped Higgsfield generation jobs (migration 24). The project canvas supports summary review, manual storyboard entry, explicit generation, resumable polling, and output modals. Shot links, director-note decisions, partial revisions, shot versions, and token ledger remain to build. Existing `sessions`, `prds`, and `messages` tables describe a separate document workspace. Login and immediate registration are implemented; billing is outside this scope.
 
 ## Decisions before AI work
 
@@ -35,7 +35,7 @@ Requirements: FR-001, FR-004, FR-010 foundations.
 - [x] Add Go endpoints for signed PUT, verification/completion, and short-lived signed GET. Check brief ownership on every endpoint.
 - [ ] Treat text-only, attachment-only, and mixed brief input as valid; do not claim file contents were interpreted until type-specific extraction exists.
 - [ ] Add `generation_job` for Higgsfield requests, status, media URL, and error, linked to decision and shot version.
-- [ ] Define the project boundary explicitly. For the single-project demo, use one seeded project identifier consistently; defer project-management features.
+- [x] Define an owned project boundary with create, list, and detail records. Each project has a linked brief for R2 attachments; project canvas nodes now use each project's own confirmed summary, saved shots and completed outputs.
 - [ ] Store immutable raw brief text and append-only shot versions. Store text parts and change diffs as JSONB, with stable point keys.
 - [ ] Enforce unique shot codes within a project, version numbers within a shot, and one decision per shot/change. Retain foreign-key relationships for provenance.
 - [x] Add entities, request/response DTOs, repositories, services, handlers, and route wiring for impact preview and brief/attachment flows.
@@ -162,7 +162,7 @@ Jo prepares the independent answer key and business validation; Rasya owns UI an
 
 At the PRD's 03:00 checkpoint, cut retry tracking first, then whole-brief comparison, restore-version actions, and a dedicated benchmark page. Keep benchmark results in a table/deck if needed.
 
-Do not add storyboard generation, automated media quality scoring, automatic method recommendations, new login/billing flows, multi-user collaboration, vector databases, agents, queues, microservices, or OZU integrations.
+Do not add storyboard generation, automated media quality scoring, automatic method recommendations, billing flows, multi-user collaboration, vector databases, agents, queues, microservices, or OZU integrations.
 
 If live ChatGPT or Higgsfield access is unavailable, use manual entry and seeded output labeled as examples. This supports a fallback demo but does not satisfy acceptance of the live AI or media feature; record that limitation explicitly.
 
@@ -178,3 +178,16 @@ If live ChatGPT or Higgsfield access is unavailable, use manual entry and seeded
 - [ ] Setup works without hidden seeded dependencies, or those dependencies are disclosed.
 - [ ] Acceptance results and benchmark measurements are recorded.
 - [ ] Demo hosting works, keys stay server-side, and rehearsals pass.
+
+## Implemented project flow — 9 October 2026
+
+- [x] Load R2 settings from `.envrc` under Air and check configuration before creating a project with files.
+- [x] Capture raw brief text once; review/edit and confirm ChatGPT summaries with manual fallback.
+- [x] Use supported image/PDF references in summary inputs; leave other formats as downloadable references.
+- [x] Save project-owned storyboard shots manually after summary confirmation, locking that summary version.
+- [x] Persist explicit image/video generation requests and provider IDs with ownership checks and duplicate/active-job guards.
+- [x] Resume status polling after refresh; retain failed/uncertain history and show media only after completion.
+- [x] Verify PostgreSQL ownership, immutable source text, storyboard concurrency boundaries, and duplicate job claims; frontend types/lint/build and node regression checks.
+- [ ] CSV storyboard import, revision/version workflow, token ledger, durable R2 output archival, webhook/background polling, provider reconciliation UI, and live provider validation.
+
+This completes the initial project flow; it does not complete the director-note impact/revision acceptance scenarios in the PRD.

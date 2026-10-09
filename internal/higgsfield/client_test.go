@@ -3,6 +3,7 @@ package higgsfield
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"strings"
@@ -47,3 +48,20 @@ func TestSubmitAndStatus(t *testing.T) {
 type roundTripFunc func(*http.Request) (*http.Response, error)
 
 func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
+
+func TestSubmissionRejectionAndImmediateOutput(t *testing.T) {
+	c := New("key")
+	c.http = &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+		return &http.Response{StatusCode: 401, Body: io.NopCloser(strings.NewReader("{}"))}, nil
+	})}
+	if _, err := c.Submit(context.Background(), "image", "prompt"); !errors.Is(err, ErrSubmissionRejected) {
+		t.Fatal("explicit rejection treated as ambiguous", err)
+	}
+	c.http = &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+		return &http.Response{StatusCode: 201, Body: io.NopCloser(strings.NewReader(`{"request_id":"request","status":"completed","images":[{"url":"https://example.com/image.png"}]}`))}, nil
+	})}
+	j, err := c.Submit(context.Background(), "image", "prompt")
+	if err != nil || j.RequestID != "request" || len(j.Images) != 1 {
+		t.Fatal("immediate result lost", err)
+	}
+}

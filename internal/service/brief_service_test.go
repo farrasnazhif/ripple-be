@@ -14,6 +14,15 @@ type briefRepoStub struct {
 	completed  bool
 }
 
+func TestAttachmentStorageAvailable(t *testing.T) {
+	if NewBriefService(nil, nil, nil).AttachmentStorageAvailable() {
+		t.Fatal("unconfigured storage reported available")
+	}
+	if !NewBriefService(nil, &briefStorageStub{}, nil).AttachmentStorageAvailable() {
+		t.Fatal("configured storage reported unavailable")
+	}
+}
+
 func (r *briefRepoStub) Create(context.Context, string, string) (*entity.Brief, error) {
 	return &r.brief, nil
 }
@@ -83,5 +92,37 @@ func TestBriefAttachmentVerification(t *testing.T) {
 	storage.size = 10
 	if _, err := svc.CompleteAttachment(context.Background(), "owner", "brief", a.ID); err != nil || !repo.completed {
 		t.Fatalf("valid attachment rejected: %v", err)
+	}
+}
+
+func (r *briefRepoStub) SetText(context.Context, string, string, string) error { return nil }
+
+type summarizerStub struct {
+	references []entity.BriefReference
+	calls      int
+}
+
+func (s *summarizerStub) SummarizeBrief(_ context.Context, text string, refs ...entity.BriefReference) (string, entity.TokenUsage, error) {
+	s.references = refs
+	s.calls++
+	return "Summary", entity.TokenUsage{}, nil
+}
+func TestAttachmentOnlySummaryUsesOwnedSupportedFiles(t *testing.T) {
+	repo := &briefRepoStub{brief: entity.Brief{ID: "brief"}, attachment: entity.BriefAttachment{ContentType: "image/png", FileName: "reference.png", SizeBytes: 10, Status: "completed"}}
+	provider := &summarizerStub{}
+	s := NewBriefService(repo, &briefStorageStub{}, provider)
+	if _, _, err := s.DraftSummary(context.Background(), "other", "brief"); !errors.Is(err, entity.ErrNotFound) || provider.calls != 0 {
+		t.Fatal("unowned source summarized")
+	}
+	if _, _, err := s.DraftSummary(context.Background(), "owner", "brief"); err != nil || len(provider.references) != 1 || provider.references[0].URL != "https://r2.example/download" {
+		t.Fatal("image source missing", err)
+	}
+	repo.attachment.ContentType = "application/pdf"
+	if _, _, err := s.DraftSummary(context.Background(), "owner", "brief"); err != nil || provider.references[0].ContentType != "application/pdf" {
+		t.Fatal("PDF source missing", err)
+	}
+	repo.attachment.ContentType = "application/octet-stream"
+	if _, _, err := s.DraftSummary(context.Background(), "owner", "brief"); !errors.Is(err, ErrNoBriefText) {
+		t.Fatal("unsupported contents claimed", err)
 	}
 }

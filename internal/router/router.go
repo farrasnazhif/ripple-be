@@ -13,6 +13,7 @@ import (
 )
 
 type Config struct {
+	Workflow        *handler.WorkflowHandler
 	FrontendURL     string
 	JWTSecret       string
 	RateLimit       int
@@ -20,7 +21,7 @@ type Config struct {
 	RateLimitWindow time.Duration
 }
 
-func New(cfg Config, authHandler *handler.AuthHandler, userHandler *handler.UserHandler, billingHandler *handler.BillingHandler, briefHandler *handler.BriefHandler, userRepo repository.UserRepository) http.Handler {
+func New(cfg Config, authHandler *handler.AuthHandler, userHandler *handler.UserHandler, projectHandler *handler.ProjectHandler, briefHandler *handler.BriefHandler, userRepo repository.UserRepository) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(mw.CORS(cfg.FrontendURL))
@@ -38,27 +39,40 @@ func New(cfg Config, authHandler *handler.AuthHandler, userHandler *handler.User
 		})
 
 		r.Get("/swagger/*", httpSwagger.WrapHandler)
-		r.Get("/demo/graph", handler.DemoGraph)
-		r.With(apiLimiter).Post("/impact/preview", handler.PreviewImpact)
+		r.With(auth).Get("/demo/graph", handler.DemoGraph)
+		r.With(auth, apiLimiter).Post("/impact/preview", handler.PreviewImpact)
 
 		r.Route("/auth", func(r chi.Router) {
 			r.With(registerLimiter).Post("/register", authHandler.Register)
-			r.With(registerLimiter).Post("/otp/send", authHandler.SendOTP)
-			r.With(registerLimiter).Post("/otp/verify", authHandler.VerifyOTP)
 			r.With(apiLimiter).Post("/login", authHandler.Login)
 		})
 
 		r.Route("/users", func(r chi.Router) {
 			r.Use(auth)
 			r.Get("/me", userHandler.GetProfile)
-			r.Get("/billing", userHandler.GetBilling)
 		})
+
+		r.With(auth, apiLimiter).Get("/projects", projectHandler.List)
+		r.With(auth, apiLimiter).Get("/projects/", projectHandler.List)
+		r.With(auth, apiLimiter).Post("/projects", projectHandler.Create)
+		r.With(auth, apiLimiter).Post("/projects/", projectHandler.Create)
+		r.With(auth, apiLimiter).Get("/projects/{projectID}", projectHandler.Get)
+
+		if cfg.Workflow != nil {
+			r.With(auth).Get("/projects/{projectID}/storyboard", cfg.Workflow.ListShots)
+			r.With(auth, apiLimiter).Post("/projects/{projectID}/storyboard", cfg.Workflow.CreateShots)
+			r.With(auth, apiLimiter).Post("/projects/{projectID}/shots/{shotID}/generations", cfg.Workflow.Submit)
+			r.With(auth).Get("/projects/{projectID}/generations", cfg.Workflow.ListJobs)
+			r.With(auth).Get("/projects/{projectID}/generations/{jobID}", cfg.Workflow.GetJob)
+		}
 
 		r.Route("/briefs", func(r chi.Router) {
 			r.Use(auth)
 			r.Use(apiLimiter)
 			r.Post("/", briefHandler.Create)
+			r.Get("/storage", briefHandler.StorageStatus)
 			r.Get("/{briefID}", briefHandler.Get)
+			r.Put("/{briefID}/text", briefHandler.SetText)
 			r.Post("/{briefID}/summary/draft", briefHandler.DraftSummary)
 			r.Put("/{briefID}/summary", briefHandler.ConfirmSummary)
 			r.Post("/{briefID}/attachments", briefHandler.StartAttachment)
@@ -67,16 +81,6 @@ func New(cfg Config, authHandler *handler.AuthHandler, userHandler *handler.User
 			r.Get("/{briefID}/attachments/{attachmentID}/download", briefHandler.DownloadAttachment)
 		})
 
-		// Webhook - no auth required
-		r.With(apiLimiter).Post("/billing/paypal/webhook", billingHandler.Webhook)
-
-		// Billing - authenticated
-		r.Route("/billing", func(r chi.Router) {
-			r.Use(auth)
-			r.Use(apiLimiter)
-			r.Post("/paypal/subscriptions", billingHandler.CreateSubscription)
-			r.Delete("/paypal/subscriptions", billingHandler.CancelSubscription)
-		})
 	})
 
 	return r

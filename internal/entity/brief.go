@@ -16,3 +16,10 @@ type BriefAttachment struct {
 	SizeBytes   int64  `json:"size_bytes"`
 	Status      string `json:"status"`
 }
+
+// BriefReference is a temporary, server-created URL passed only to the summarizer.
+type BriefReference struct {
+	URL         string
+	ContentType string
+	FileName    string
+}
