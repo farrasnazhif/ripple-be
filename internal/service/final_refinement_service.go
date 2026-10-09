@@ -15,6 +15,7 @@ var ErrInvalidFinalRefinement = errors.New("choose a completed final output, a v
 var ErrFinalReference = errors.New("the final output needs a publicly reachable HTTPS reference; local demo assets cannot be sent to Higgsfield")
 
 type FinalMediaEditor interface {
+	Submit(context.Context, string, string) (higgsfield.Job, error)
 	Refine(context.Context, string, string, string) (higgsfield.Job, error)
 	Status(context.Context, string) (higgsfield.Job, error)
 }
@@ -86,6 +87,9 @@ func (s *FinalRefinementService) Refine(ctx context.Context, user, project, sour
 	}
 	// shortcut: ambiguous paid submissions need provider-dashboard reconciliation; never resubmit automatically.
 	result, submitErr := s.provider.Refine(ctx, f.Kind, "Apply only these adjustments to the supplied final output. Preserve unrelated content and constraints.\n"+prompt, reference)
+	return s.saveSubmission(ctx, f, base, result, submitErr)
+}
+func (s *FinalRefinementService) saveSubmission(ctx context.Context, f, base *entity.FinalOutput, result higgsfield.Job, submitErr error) (*entity.FinalOutput, error) {
 	if submitErr != nil {
 		f.Status = "unknown"
 		if errors.Is(submitErr, higgsfield.ErrSubmissionRejected) {
@@ -96,7 +100,7 @@ func (s *FinalRefinementService) Refine(ctx context.Context, user, project, sour
 	}
 	saveCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), querySaveTimeout)
 	defer cancel()
-	if err = s.repo.Save(saveCtx, f); err != nil {
+	if err := s.repo.Save(saveCtx, f); err != nil {
 		return nil, err
 	}
 	return f, nil
@@ -107,7 +111,7 @@ func applyFinalProvider(f, base *entity.FinalOutput, result higgsfield.Job) {
 	f.ProviderID, f.Status = result.RequestID, j.Status
 	f.Outputs = []string{}
 	if f.Status == "completed" {
-		if f.Kind == "image" {
+		if f.Kind == "image" && f.ParentID != nil {
 			f.Outputs = append([]string{}, base.Outputs...)
 			f.Outputs[f.ImageIndex] = j.Outputs[0]
 		} else {
@@ -120,10 +124,13 @@ func (s *FinalRefinementService) Get(ctx context.Context, user, project, id stri
 	if err != nil {
 		return nil, err
 	}
-	if s.provider != nil && f.ParentID != nil && f.ProviderID != "" && generationPending(f.Status) {
-		base, err := s.repo.Get(ctx, user, project, *f.ParentID)
-		if err != nil {
-			return nil, err
+	if s.provider != nil && f.ProviderID != "" && generationPending(f.Status) {
+		base := f
+		if f.ParentID != nil {
+			base, err = s.repo.Get(ctx, user, project, *f.ParentID)
+			if err != nil {
+				return nil, err
+			}
 		}
 		result, err := s.provider.Status(ctx, f.ProviderID)
 		if err != nil {

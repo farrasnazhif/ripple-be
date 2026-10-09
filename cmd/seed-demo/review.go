@@ -41,6 +41,15 @@ func seedReviews(ctx context.Context, db *sql.DB, storage *r2.Client, user strin
 		if err != nil {
 			return err
 		}
+		if key == "images" && len(plan) == 0 && len(state.Finals) > 0 {
+			if len(state.Finals) == 1 {
+				if _, err = db.ExecContext(ctx, `INSERT INTO project_final_outputs(project_id,parent_id,request_key,brief_version,kind,job_ids,outputs,prompt,reason,accepted)VALUES($1,$2,gen_random_uuid(),$3,'image','[]','["/demo-assets/landscape-3.png"]','DEMO: add more space for campaign copy','DEMO: illustrated revision, no provider called',false)`, project, state.Finals[0].ID, b.Version); err != nil {
+					return err
+				}
+			}
+			fmt.Printf("Preserved direct-image fixture %s\n", project)
+			continue
+		}
 		if len(plan) != 2 {
 			return fmt.Errorf("demo plan changed; refusing to replace user work")
 		}
@@ -51,7 +60,7 @@ func seedReviews(ctx context.Context, db *sql.DB, storage *r2.Client, user strin
 		defer tx.Rollback()
 		output := "image"
 		name := "DEMO 2 — Accepted image collection"
-		description := "Brief → summary → image plan → refined image versions → accepted final images. Open image nodes to inspect requirements and decisions."
+		description := "Brief → summary → final images. Open Final Output to inspect saved versions and refine an image directly."
 		if key == "mixed" {
 			output = "video"
 			name = "DEMO 3 — Video change impact"

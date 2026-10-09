@@ -196,7 +196,7 @@ The original implementation notes above describe the earlier flow. The updated i
 
 - [x] Migration 25: brief snapshots, stable requirements, shot links, persisted changes/decisions, accepted media and final output history.
 - [x] Editable brief/summary modals, multiple references, removal with archive access, ChatGPT summary refinement, and reviewed manual fallback.
-- [x] Choose images or video after summary; review a ChatGPT-drafted or manual plan before saving.
+- [x] Choose images or video after summary: generate a final image directly, or review a ChatGPT-drafted/manual video storyboard.
 - [x] Calculate local/global/deleted requirement impact; narrative-only edits request manual review.
 - [x] Wide media review modal with real preview, version thumbnails, same-prompt regeneration, edited-prompt refinement, acceptance and keep-with-reason.
 - [x] Group completed versions into clip/image nodes; connect accepted inputs to final outputs.
@@ -216,3 +216,5 @@ The original implementation notes above describe the earlier flow. The updated i
 
 - [x] Migration 27: direct final image/video refinement, saved source references and adjustments/reasons, candidate polling, explicit acceptance, version comparison, and duplicate-submission protection.
 - [x] Verify owner boundaries, collection preservation, stale brief/source rejection, and accepted-only final canvas projection.
+
+- [x] Direct Brief → Brief Summary → Final Image flow; no image plan or storyboard-shot creation. Preserve existing image collections and continue final refinement/versioning.

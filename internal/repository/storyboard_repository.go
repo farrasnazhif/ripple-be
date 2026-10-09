@@ -10,7 +10,7 @@ import (
 	"github.com/farrasnazhif/ripple-be/internal/entity"
 )
 
-var ErrWorkflowConflict = errors.New("storyboard already saved or summary changed; reload the project")
+var ErrWorkflowConflict = errors.New("project workflow or brief changed; reload the project")
 
 type StoryboardRepository interface {
 	List(context.Context, string, string) ([]entity.StoryboardShot, error)
@@ -46,15 +46,15 @@ func (r *storyboardRepository) Create(ctx context.Context, userID, projectID, su
 		return err
 	}
 	defer tx.Rollback()
-	var saved string
-	err = tx.QueryRowContext(ctx, `SELECT COALESCE(b.summary,'') FROM briefs b JOIN projects p ON p.id=b.project_id WHERE p.id=$1 AND p.user_id=$2 FOR UPDATE OF b`, projectID, userID).Scan(&saved)
+	var saved, outputType string
+	err = tx.QueryRowContext(ctx, `SELECT COALESCE(b.summary,''),p.output_type FROM briefs b JOIN projects p ON p.id=b.project_id WHERE p.id=$1 AND p.user_id=$2 FOR UPDATE OF b`, projectID, userID).Scan(&saved, &outputType)
 	if errors.Is(err, sql.ErrNoRows) {
 		return entity.ErrNotFound
 	}
 	if err != nil {
 		return err
 	}
-	if saved != summary {
+	if saved != summary || outputType == "image" {
 		return ErrWorkflowConflict
 	}
 	var exists bool

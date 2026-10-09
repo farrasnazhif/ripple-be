@@ -18,7 +18,7 @@ func TestDemoIDsAreStableAndOwnerScoped(t *testing.T) {
 	}
 }
 func TestDemoFlowsAndImages(t *testing.T) {
-	counts := []int{0, 2, 4, 0, 0}
+	counts := []int{0, 0, 4, 0, 0}
 	for i, d := range demos {
 		if len(d.name) > 100 || len(d.description) > 500 || d.brief == "" {
 			t.Fatal("invalid project fixture")
@@ -41,6 +41,9 @@ func TestDemoFlowsAndImages(t *testing.T) {
 		if err != nil || img.Bounds().Dx() != 960 || img.Bounds().Dy() != 540 {
 			t.Fatal("broken demo image")
 		}
+	}
+	if demos[1].summary == "" || len(demos[1].shots) != 0 {
+		t.Fatal("image demo must generate its final directly without a plan")
 	}
 	if len(demos) != 5 || demos[3].summary == "" || len(demos[3].shots) != 0 {
 		t.Fatal("fourth demo must contain a brief and summary only")

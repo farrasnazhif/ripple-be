@@ -43,7 +43,7 @@ func TestWorkspaceAPIRequiresLogin(t *testing.T) {
 		}
 	}
 
-	for _, route := range []struct{ method, path string }{{"GET", "review"}, {"PUT", "brief"}, {"PUT", "output-type"}, {"PUT", "shots/22222222-2222-2222-2222-222222222222/requirements"}, {"POST", "shots/22222222-2222-2222-2222-222222222222/decisions"}, {"POST", "plan/draft"}, {"POST", "summary/refine"}, {"POST", "final"}, {"GET", "finals/22222222-2222-2222-2222-222222222222"}, {"POST", "finals/22222222-2222-2222-2222-222222222222/refinements"}, {"POST", "finals/22222222-2222-2222-2222-222222222222/accept"}} {
+	for _, route := range []struct{ method, path string }{{"GET", "review"}, {"PUT", "brief"}, {"PUT", "output-type"}, {"PUT", "shots/22222222-2222-2222-2222-222222222222/requirements"}, {"POST", "shots/22222222-2222-2222-2222-222222222222/decisions"}, {"POST", "plan/draft"}, {"POST", "summary/refine"}, {"POST", "final"}, {"POST", "images"}, {"GET", "finals/22222222-2222-2222-2222-222222222222"}, {"POST", "finals/22222222-2222-2222-2222-222222222222/refinements"}, {"POST", "finals/22222222-2222-2222-2222-222222222222/accept"}} {
 		response := httptest.NewRecorder()
 		mux.ServeHTTP(response, httptest.NewRequest(route.method, "/api/v1/projects/11111111-1111-1111-1111-111111111111/"+route.path, nil))
 		if response.Code != http.StatusUnauthorized {

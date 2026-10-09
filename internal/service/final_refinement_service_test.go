@@ -27,7 +27,10 @@ func (r *finalRepoStub) Get(_ context.Context, user, project, id string) (*entit
 	copy := *f
 	return &copy, nil
 }
-func (r *finalRepoStub) Claim(_ context.Context, _, _ string, f *entity.FinalOutput) (bool, error) {
+func (r *finalRepoStub) Claim(_ context.Context, user, project string, f *entity.FinalOutput) (bool, error) {
+	if user != "owner" || project != "project" {
+		return false, entity.ErrNotFound
+	}
 	f.ID = "candidate"
 	copy := *f
 	r.job = &copy
@@ -48,6 +51,10 @@ type finalEditorStub struct {
 	fail      bool
 }
 
+func (p *finalEditorStub) Submit(context.Context, string, string) (higgsfield.Job, error) {
+	p.calls++
+	return higgsfield.Job{RequestID: "request", Status: "queued"}, nil
+}
 func (p *finalEditorStub) Refine(_ context.Context, kind, prompt, reference string) (higgsfield.Job, error) {
 	p.calls++
 	p.reference = reference
@@ -134,5 +141,29 @@ func TestFinalVideoUsesFreshR2Reference(t *testing.T) {
 	service := NewFinalRefinementService(repo, provider, &briefStorageStub{})
 	if _, err := service.Refine(context.Background(), "owner", "project", "source", "key", 0, "Warm lighting", "Reason"); err != nil || provider.reference != "https://r2.example/download" {
 		t.Fatal("R2 source not resolved", provider.reference, err)
+	}
+}
+
+func TestDirectImageGenerationUsesFinalHistory(t *testing.T) {
+	ctx := context.Background()
+	repo := &finalRepoStub{}
+	provider := &finalEditorStub{}
+	service := NewFinalRefinementService(repo, provider, nil)
+	if _, err := service.GenerateImage(ctx, "other", "project", "key", 1); !errors.Is(err, entity.ErrNotFound) || provider.calls != 0 {
+		t.Fatal("cross-owner direct image", err)
+	}
+	f, err := service.GenerateImage(ctx, "owner", "project", "key", 1)
+	if err != nil || f.Status != "queued" || f.ParentID != nil || len(f.JobIDs) != 0 || f.Accepted {
+		t.Fatal("direct image incorrectly requires a plan", f, err)
+	}
+	if _, err = service.GenerateImage(ctx, "owner", "project", "key", 1); err != nil || provider.calls != 1 {
+		t.Fatal("duplicate image charge", err)
+	}
+	if _, err = service.GenerateImage(ctx, "owner", "project", "key", 2); !errors.Is(err, ErrInvalidDirectImage) {
+		t.Fatal("key reused for a different brief", err)
+	}
+	f, err = service.Get(ctx, "owner", "project", f.ID)
+	if err != nil || f.Status != "completed" || len(f.Outputs) != 1 || f.Outputs[0] != "https://example.com/refined.png" || f.Accepted {
+		t.Fatal("direct image result", f, err)
 	}
 }

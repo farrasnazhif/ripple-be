@@ -107,7 +107,7 @@ func workflowError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, entity.ErrNotFound):
 		helpers.ErrorResponse(w, 404, "project, shot or generation not found")
-	case errors.Is(err, service.ErrInvalidFinalRefinement), errors.Is(err, service.ErrFinalReference), errors.Is(err, service.ErrInvalidReview), errors.Is(err, service.ErrFinalNotReady), errors.Is(err, service.ErrInvalidStoryboard), errors.Is(err, service.ErrInvalidGeneration), errors.Is(err, service.ErrNoBriefText):
+	case errors.Is(err, service.ErrInvalidDirectImage), errors.Is(err, service.ErrInvalidFinalRefinement), errors.Is(err, service.ErrFinalReference), errors.Is(err, service.ErrInvalidReview), errors.Is(err, service.ErrFinalNotReady), errors.Is(err, service.ErrInvalidStoryboard), errors.Is(err, service.ErrInvalidGeneration), errors.Is(err, service.ErrNoBriefText):
 		helpers.ErrorResponse(w, 400, err.Error())
 	case errors.Is(err, repository.ErrWorkflowConflict), errors.Is(err, repository.ErrGenerationConflict):
 		helpers.ErrorResponse(w, 409, err.Error())

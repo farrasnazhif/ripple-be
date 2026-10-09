@@ -148,8 +148,8 @@ func (h *ReviewHandler) Draft(w http.ResponseWriter, r *http.Request) {
 		helpers.SuccessResponse(w, 200, "review refined summary", map[string]string{"summary": text})
 		return
 	}
-	if state.OutputType != "image" && state.OutputType != "video" {
-		helpers.ErrorResponse(w, 400, "choose image or video first")
+	if state.OutputType != "video" {
+		helpers.ErrorResponse(w, 400, "choose video to create a storyboard; images generate directly from the confirmed summary")
 		return
 	}
 	shots, err := h.ai.DraftPlan(r.Context(), input.Summary, state.OutputType)

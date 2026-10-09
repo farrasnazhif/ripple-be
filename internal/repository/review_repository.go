@@ -121,15 +121,24 @@ func (r *reviewRepository) Edit(ctx context.Context, user, project string, input
 func (r *reviewRepository) SetType(ctx context.Context, user, project, kind string) error {
 	ctx, cancel := context.WithTimeout(ctx, queryTimeout)
 	defer cancel()
-	result, err := r.db.ExecContext(ctx, `UPDATE projects SET output_type=$3 WHERE id=$1 AND user_id=$2 AND NOT EXISTS(SELECT 1 FROM storyboard_shots WHERE project_id=$1)`, project, user, kind)
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if _, _, err = ownedBrief(ctx, tx, user, project); err != nil {
+		return err
+	}
+	result, err := tx.ExecContext(ctx, `UPDATE projects SET output_type=$3 WHERE id=$1 AND user_id=$2 AND (output_type=$3 OR (NOT EXISTS(SELECT 1 FROM storyboard_shots WHERE project_id=$1) AND NOT EXISTS(SELECT 1 FROM project_final_outputs WHERE project_id=$1 AND status NOT IN ('failed','nsfw','canceled'))))`, project, user, kind)
 	if err != nil {
 		return err
 	}
 	if n, _ := result.RowsAffected(); n != 1 {
 		return ErrWorkflowConflict
 	}
-	return nil
+	return tx.Commit()
 }
+
 func (r *reviewRepository) Link(ctx context.Context, user, project, shot string, keys []string) error {
 	ctx, cancel := context.WithTimeout(ctx, queryTimeout)
 	defer cancel()
@@ -254,6 +263,17 @@ func (r *reviewRepository) SaveFinal(ctx context.Context, user, project string, 
 }
 
 func validateFinalInputs(ctx context.Context, tx *sql.Tx, project string, final *entity.FinalOutput) error {
+	if final.Kind == "image" && len(final.JobIDs) == 0 {
+		var confirmed bool
+		err := tx.QueryRowContext(ctx, `SELECT p.output_type='image' AND length(trim(COALESCE(b.summary,'')))>0 FROM projects p JOIN briefs b ON b.project_id=p.id WHERE p.id=$1`, project).Scan(&confirmed)
+		if err != nil {
+			return err
+		}
+		if !confirmed {
+			return ErrWorkflowConflict
+		}
+		return nil
+	}
 	ids, _ := json.Marshal(final.JobIDs)
 	var current []byte
 	err := tx.QueryRowContext(ctx, `SELECT COALESCE(jsonb_agg(g.id ORDER BY s.position),'[]') FROM generation_jobs g JOIN storyboard_shots s ON s.id=g.shot_id WHERE s.project_id=$1 AND g.kind=$2 AND g.accepted`, project, final.Kind).Scan(&current)

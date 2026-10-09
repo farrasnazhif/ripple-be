@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/farrasnazhif/ripple-be/internal/entity"
 	"os"
+	"strings"
 	"testing"
 	"time"
 )
@@ -115,4 +116,67 @@ func TestFinalRefinementDatabase(t *testing.T) {
 	if err = json.Unmarshal(ids, &saved); err != nil || len(saved) != 1 || saved[0] != job {
 		t.Fatal("provenance", saved, err)
 	}
+	direct, err := NewProjectRepository(db).Create(ctx, user, "Direct image", "Source")
+	if err != nil {
+		t.Fatal(err)
+	}
+	directKey := direct.ID
+	image := &entity.FinalOutput{RequestKey: &directKey, BriefVersion: 1, Kind: "image", JobIDs: []string{}, Outputs: []string{}, Status: "submitting"}
+	if _, err = repo.Claim(ctx, user, direct.ID, image); !errors.Is(err, ErrWorkflowConflict) {
+		t.Fatal("empty summary generated an image", err)
+	}
+	if _, err = db.ExecContext(ctx, `UPDATE briefs SET summary='Campaign image with warm light' WHERE id=$1`, direct.BriefID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = db.ExecContext(ctx, `INSERT INTO brief_points(brief_id,key,value,scope)VALUES($1,'palette','Natural green','global')`, direct.BriefID); err != nil {
+		t.Fatal(err)
+	}
+	if claimed, err := repo.Claim(ctx, user, direct.ID, image); err != nil || !claimed {
+		t.Fatal("direct claim", claimed, err)
+	}
+	if !strings.Contains(image.Prompt, "Campaign image with warm light") || !strings.Contains(image.Prompt, "Natural green") {
+		t.Fatal("saved constraints missing", image.Prompt)
+	}
+	var count int
+	if err = db.QueryRowContext(ctx, `SELECT count(*) FROM storyboard_shots WHERE project_id=$1`, direct.ID).Scan(&count); err != nil || count != 0 {
+		t.Fatal("hidden image plan created", count, err)
+	}
+	if err = reviews.SetType(ctx, user, direct.ID, "video"); !errors.Is(err, ErrWorkflowConflict) {
+		t.Fatal("active image changed output type", err)
+	}
+	if err = NewStoryboardRepository(db).Create(ctx, user, direct.ID, "Campaign image with warm light", []entity.StoryboardShot{{Title: "Plan", Prompt: "Prompt"}}); !errors.Is(err, ErrWorkflowConflict) {
+		t.Fatal("image plan was allowed", err)
+	}
+	image.Status = "completed"
+	image.Outputs = []string{"https://example.com/direct.png"}
+	if err = repo.Save(ctx, image); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = repo.Accept(ctx, user, direct.ID, image.ID); err != nil {
+		t.Fatal("direct image acceptance needs a plan", err)
+	}
+	refineKey := direct.BriefID
+	refinement := &entity.FinalOutput{ParentID: &image.ID, RequestKey: &refineKey, BriefVersion: 1, Kind: "image", Prompt: "Warmer", Reason: "Director feedback", JobIDs: []string{}, Outputs: []string{}, Status: "submitting"}
+	if claimed, err := repo.Claim(ctx, user, direct.ID, refinement); err != nil || !claimed {
+		t.Fatal("direct final cannot be refined", claimed, err)
+	}
+	refinement.Status = "completed"
+	refinement.Outputs = []string{"https://example.com/direct-refined.png"}
+	if err = repo.Save(ctx, refinement); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = repo.Accept(ctx, user, direct.ID, refinement.ID); err != nil {
+		t.Fatal("direct refinement acceptance", err)
+	}
+	directState, err := reviews.Get(ctx, user, direct.ID)
+	if err != nil || len(directState.Finals) != 2 || !directState.Finals[0].Accepted || directState.Finals[1].Accepted {
+		t.Fatal("direct final history", directState, err)
+	}
+	if _, err = db.ExecContext(ctx, `UPDATE briefs SET version=2 WHERE id=$1`, direct.BriefID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = repo.Accept(ctx, user, direct.ID, refinement.ID); !errors.Is(err, ErrWorkflowConflict) {
+		t.Fatal("direct final accepted against a changed summary", err)
+	}
+
 }

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"strings"
 
 	"github.com/farrasnazhif/ripple-be/internal/entity"
 	"github.com/lib/pq"
@@ -59,6 +60,27 @@ func (r *finalRefinementRepository) Claim(ctx context.Context, user, project str
 	}
 	if f.BriefVersion != version {
 		return false, ErrWorkflowConflict
+	}
+	if f.ParentID == nil && f.Kind == "image" && len(f.JobIDs) == 0 {
+		var summary, outputType string
+		var points []byte
+		err = tx.QueryRowContext(ctx, `SELECT COALESCE(b.summary,''),p.output_type,COALESCE((SELECT jsonb_agg(jsonb_build_object('key',key,'value',value) ORDER BY key) FROM brief_points WHERE brief_id=b.id),'[]') FROM briefs b JOIN projects p ON p.id=b.project_id WHERE p.id=$1`, project).Scan(&summary, &outputType, &points)
+		if err != nil {
+			return false, err
+		}
+		if strings.TrimSpace(summary) == "" || (outputType != "" && outputType != "image") {
+			return false, ErrWorkflowConflict
+		}
+		f.Prompt = summary
+		if string(points) != "[]" {
+			f.Prompt += "\nConfirmed requirements:\n" + string(points)
+		}
+		if len([]rune(f.Prompt)) > 10000 {
+			return false, ErrWorkflowConflict
+		}
+		if _, err = tx.ExecContext(ctx, `UPDATE projects SET output_type='image' WHERE id=$1`, project); err != nil {
+			return false, err
+		}
 	}
 	if err = validateFinalInputs(ctx, tx, project, f); err != nil {
 		return false, err

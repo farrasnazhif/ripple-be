@@ -392,6 +392,51 @@ const docTemplate = `{
                 }
             }
         },
+        "/projects/{projectID}/images": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "projects"
+                ],
+                "summary": "Generate a final image directly from the saved brief summary",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Project ID",
+                        "name": "projectID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Saved brief version and idempotency key",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_farrasnazhif_ripple-be_internal_dto_request.DirectImage"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_farrasnazhif_ripple-be_internal_entity.FinalOutput"
+                        }
+                    }
+                }
+            }
+        },
         "/users/me": {
             "get": {
                 "security": [
@@ -422,6 +467,17 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "github_com_farrasnazhif_ripple-be_internal_dto_request.DirectImage": {
+            "type": "object",
+            "properties": {
+                "expected_version": {
+                    "type": "integer"
+                },
+                "request_key": {
+                    "type": "string"
+                }
+            }
+        },
         "github_com_farrasnazhif_ripple-be_internal_dto_request.FinalRefinement": {
             "type": "object",
             "properties": {
