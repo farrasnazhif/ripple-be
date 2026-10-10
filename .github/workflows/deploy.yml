@@ -19,7 +19,7 @@ env:
   AR_REPOSITORY: ${{ vars.GCP_AR_REPOSITORY || 'ripple' }}
   DEPLOY_SERVICE_ACCOUNT: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT || 'ripple-github-deployer@ripple-be-20261010-farras.iam.gserviceaccount.com' }}
   RUNTIME_SERVICE_ACCOUNT: ${{ vars.GCP_RUNTIME_SERVICE_ACCOUNT || 'ripple-api-runtime@ripple-be-20261010-farras.iam.gserviceaccount.com' }}
-  FRONTEND_URL: ${{ vars.FRONTEND_URL || 'http://localhost:3000' }}
+  FRONTEND_URL: ${{ vars.FRONTEND_URL || 'https://ripple-fe-seven.vercel.app' }}
   OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-4o-mini' }}
   R2_ACCOUNT_ID: ${{ vars.R2_ACCOUNT_ID || '4cb0fa54a9988f4ecd2c204b0980960f' }}
   R2_BUCKET: ${{ vars.R2_BUCKET || 'ripple' }}

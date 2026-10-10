@@ -139,7 +139,7 @@ gcloud run deploy ripple-api \
   --cpu=1 \
   --memory=512Mi \
   --timeout=300 \
-  --set-env-vars="ENV=production,ADDR=:8080,FRONTEND_URL=http://localhost:3000,OPENAI_MODEL=${OPENAI_MODEL:-},R2_ACCOUNT_ID=${R2_ACCOUNT_ID:-},R2_BUCKET=${R2_BUCKET:-},AI_IMAGE_ESTIMATE_CENTS=1,AI_VIDEO_ESTIMATE_CENTS=200,AI_IMAGE_REFINEMENT_ESTIMATE_CENTS=1,AI_VIDEO_REFINEMENT_ESTIMATE_CENTS=2000" \
+  --set-env-vars="ENV=production,ADDR=:8080,FRONTEND_URL=https://ripple-fe-seven.vercel.app,OPENAI_MODEL=${OPENAI_MODEL:-},R2_ACCOUNT_ID=${R2_ACCOUNT_ID:-},R2_BUCKET=${R2_BUCKET:-},AI_IMAGE_ESTIMATE_CENTS=1,AI_VIDEO_ESTIMATE_CENTS=200,AI_IMAGE_REFINEMENT_ESTIMATE_CENTS=1,AI_VIDEO_REFINEMENT_ESTIMATE_CENTS=2000" \
   --set-secrets="DB_ADDR=ripple-db-addr:latest,JWT_SECRET=ripple-jwt-secret:latest"
 ```
 
@@ -224,12 +224,12 @@ The workflow has defaults for this Google Cloud project and repository, so it ca
 | `GCP_DEPLOY_SERVICE_ACCOUNT` | `ripple-github-deployer@ripple-be-20261010-farras.iam.gserviceaccount.com` |
 | `GCP_RUNTIME_SERVICE_ACCOUNT` | `ripple-api-runtime@ripple-be-20261010-farras.iam.gserviceaccount.com` |
 | `GCP_WORKLOAD_IDENTITY_PROVIDER` | Full provider name printed above |
-| `FRONTEND_URL` | Optional deployed frontend origin; defaults to `http://localhost:3000` |
+| `FRONTEND_URL` | `https://ripple-fe-seven.vercel.app` (origin only, without a trailing slash) |
 | `OPENAI_MODEL` | Your configured OpenAI model name, or leave unset |
 | `R2_ACCOUNT_ID` | Your Cloudflare account ID, if R2 is configured |
 | `R2_BUCKET` | Your R2 bucket name, if R2 is configured |
 
-The deployment maps the app’s environment this way: `ADDR` and `ENV` are fixed for Cloud Run; `DB_ADDR` and `JWT_SECRET` come from Secret Manager; `FRONTEND_URL`, `OPENAI_MODEL`, `R2_ACCOUNT_ID`, and `R2_BUCKET` are non-secret GitHub variables; `OPENAI_API_KEY`, `HF_API_KEY`, and R2 access keys are optional Secret Manager values; generation estimates are set in the workflow. `FRONTEND_URL` defaults to `http://localhost:3000`, and the backend CORS middleware also allows `http://127.0.0.1:3000`.
+The deployment maps the app’s environment this way: `ADDR` and `ENV` are fixed for Cloud Run; `DB_ADDR` and `JWT_SECRET` come from Secret Manager; `FRONTEND_URL`, `OPENAI_MODEL`, `R2_ACCOUNT_ID`, and `R2_BUCKET` are non-secret GitHub variables; `OPENAI_API_KEY`, `HF_API_KEY`, and R2 access keys are optional Secret Manager values; generation estimates are set in the workflow. `FRONTEND_URL` defaults to `https://ripple-fe-seven.vercel.app`, and the backend CORS middleware also allows `http://localhost:3000` and `http://127.0.0.1:3000`. An existing GitHub `FRONTEND_URL` variable overrides the default, so update it if it still points to localhost.
 
 The `SUPABASE_DB_ADDR` GitHub secret is optional. If absent, the workflow reads `ripple-db-addr` from Secret Manager using the deploy identity. Push to `main` to build and publish the container, apply database migrations, and deploy the new Cloud Run revision. The workflow is in `.github/workflows/deploy.yml`.
 
