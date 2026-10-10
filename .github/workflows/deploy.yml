@@ -81,5 +81,5 @@ jobs:
             --cpu=1 \
             --memory=512Mi \
             --timeout=300 \
-            --set-env-vars="ENV=production,ADDR=:8080,FRONTEND_URL=${FRONTEND_URL},OPENAI_MODEL=${OPENAI_MODEL},R2_ACCOUNT_ID=${R2_ACCOUNT_ID},R2_BUCKET=${R2_BUCKET},AI_IMAGE_ESTIMATE_CENTS=1,AI_VIDEO_ESTIMATE_CENTS=0,AI_IMAGE_REFINEMENT_ESTIMATE_CENTS=1,AI_VIDEO_REFINEMENT_ESTIMATE_CENTS=0" \
+            --set-env-vars="ENV=production,ADDR=:8080,FRONTEND_URL=${FRONTEND_URL},OPENAI_MODEL=${OPENAI_MODEL},R2_ACCOUNT_ID=${R2_ACCOUNT_ID},R2_BUCKET=${R2_BUCKET},AI_IMAGE_ESTIMATE_CENTS=1,AI_VIDEO_ESTIMATE_CENTS=200,AI_IMAGE_REFINEMENT_ESTIMATE_CENTS=1,AI_VIDEO_REFINEMENT_ESTIMATE_CENTS=2000" \
             --update-secrets="DB_ADDR=ripple-db-addr:latest,JWT_SECRET=ripple-jwt-secret:latest,OPENAI_API_KEY=ripple-openai-api-key:latest,HF_API_KEY=ripple-hf-api-key:latest,R2_ACCESS_KEY_ID=ripple-r2-access-key-id:latest,R2_SECRET_ACCESS_KEY=ripple-r2-secret-access-key:latest"

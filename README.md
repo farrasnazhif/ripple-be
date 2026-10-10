@@ -227,12 +227,12 @@ Configure conservative per-request estimates in `.envrc` using the current model
 
 ```sh
 export AI_IMAGE_ESTIMATE_CENTS=0
-export AI_VIDEO_ESTIMATE_CENTS=0
+export AI_VIDEO_ESTIMATE_CENTS=200
 export AI_IMAGE_REFINEMENT_ESTIMATE_CENTS=0
-export AI_VIDEO_REFINEMENT_ESTIMATE_CENTS=0
+export AI_VIDEO_REFINEMENT_ESTIMATE_CENTS=2000
 ```
 
-Values are integer USD cents. Zero means unpriced and blocks that operation; no rates are invented. Restart the backend after configuring them. Image and clip estimates cover the currently configured one-image / five-second clip requests. Final-video refinement can use a longer reference, so its flat estimate must conservatively cover the maximum final duration you permit; these estimates are not provider price guarantees.
+Values are integer USD cents. Zero means unpriced and blocks that operation. The video examples reserve $2 per five-second 720p clip and $20 per final-video edit. These conservative estimates use the published Higgsfield rates and cover edits with up to 30 seconds of reference and generated video each; review the estimate before allowing longer inputs or changing the model. Pricing: https://open.higgsfield.ai/models/bytedance/seedance-2.0/text-to-video/playground and https://open.higgsfield.ai/models/bytedance/seedance-2.5/video-edit/playground. Restart the backend after configuring them. Image and clip estimates cover the currently configured one-image / five-second clip requests. Final-video refinement can use a longer reference, so its flat estimate must conservatively cover the maximum final duration you permit; these estimates are not provider price guarantees.
 
 Authenticated, owner-scoped endpoints:
 
