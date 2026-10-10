@@ -11,7 +11,7 @@ import (
 	"github.com/farrasnazhif/ripple-be/internal/repository"
 )
 
-var ErrInvalidFinalRefinement = errors.New("choose a completed final output, a valid image, and provide refinement instructions (up to 10000 characters) and a reason (up to 2000 characters)")
+var ErrInvalidFinalRefinement = errors.New("choose a completed final output, a valid image, and provide refinement instructions (up to 10000 characters); the optional reason must be at most 2000 characters")
 var ErrFinalReference = errors.New("the final output needs a publicly reachable HTTPS reference; local demo assets cannot be sent to Higgsfield")
 
 type FinalMediaEditor interface {
@@ -30,7 +30,7 @@ func NewFinalRefinementService(r repository.FinalRefinementRepository, p FinalMe
 }
 func (s *FinalRefinementService) Refine(ctx context.Context, user, project, source, key string, index int, prompt, reason string) (*entity.FinalOutput, error) {
 	prompt, reason = strings.TrimSpace(prompt), strings.TrimSpace(reason)
-	if prompt == "" || len([]rune(prompt)) > 10000 || reason == "" || len([]rune(reason)) > 2000 || index < 0 {
+	if prompt == "" || len([]rune(prompt)) > 10000 || len([]rune(reason)) > 2000 || index < 0 {
 		return nil, ErrInvalidFinalRefinement
 	}
 	base, err := s.repo.Get(ctx, user, project, source)

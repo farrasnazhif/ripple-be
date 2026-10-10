@@ -78,10 +78,14 @@ func (r *finalRefinementRepository) Claim(ctx context.Context, user, project str
 		if strings.TrimSpace(summary) == "" || (outputType != "" && outputType != "image") {
 			return false, ErrWorkflowConflict
 		}
-		f.Prompt = summary
+		prompt := summary
 		if string(points) != "[]" {
-			f.Prompt += "\nConfirmed requirements:\n" + string(points)
+			prompt += "\nConfirmed requirements:\n" + string(points)
 		}
+		if f.Prompt != "" && f.Prompt != prompt {
+			return false, ErrWorkflowConflict
+		}
+		f.Prompt = prompt
 		if len([]rune(f.Prompt)) > 10000 {
 			return false, ErrWorkflowConflict
 		}

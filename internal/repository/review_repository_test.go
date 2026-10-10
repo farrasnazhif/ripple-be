@@ -69,6 +69,19 @@ func TestReviewWorkflowDatabase(t *testing.T) {
 		t.Fatal("archive inaccessible", err)
 	}
 	edit.RemoveAttachments = nil
+	edit.ExpectedVersion = 2
+	edit.Note = "Save identical content"
+	if err = reviews.Edit(ctx, user, p.ID, edit, entity.ProjectChange{}); err != nil {
+		t.Fatal("unchanged save", err)
+	}
+	unchanged, err := reviews.Get(ctx, user, p.ID)
+	if err != nil || len(unchanged.Versions) != 2 || len(unchanged.Changes) != len(state.Changes) {
+		t.Fatal("unchanged save created history", unchanged, err)
+	}
+	current, err := briefs.Get(ctx, user, p.BriefID)
+	if err != nil || current.Version != 2 {
+		t.Fatal("unchanged save incremented current version", current, err)
+	}
 	if _, err = reviews.Get(ctx, "00000000-0000-0000-0000-000000000000", p.ID); !errors.Is(err, entity.ErrNotFound) {
 		t.Fatal("cross-owner review", err)
 	}
@@ -145,5 +158,25 @@ func TestReviewWorkflowDatabase(t *testing.T) {
 	}
 	if err = reviews.SaveFinal(ctx, user, p.ID, final); !errors.Is(err, ErrWorkflowConflict) {
 		t.Fatal("outdated selection saved", err)
+	}
+	// New attachments change the saved state even when its text is unchanged.
+	if _, err = db.ExecContext(ctx, `INSERT INTO brief_attachments(brief_id,object_key,file_name,content_type,size_bytes,status)VALUES($1,$2,'new.png','image/png',1,'completed')`, p.BriefID, "test/new/"+p.ID); err != nil {
+		t.Fatal(err)
+	}
+	edit.ExpectedVersion = 3
+	if err = reviews.Edit(ctx, user, p.ID, edit, entity.ProjectChange{}); err != nil {
+		t.Fatal("attachment-only revision", err)
+	}
+	current, err = briefs.Get(ctx, user, p.BriefID)
+	if err != nil || current.Version != 4 {
+		t.Fatal("attachment addition did not create a version", current, err)
+	}
+	edit.ExpectedVersion = 4
+	if err = reviews.Edit(ctx, user, p.ID, edit, entity.ProjectChange{}); err != nil {
+		t.Fatal("unchanged attachment save", err)
+	}
+	current, err = briefs.Get(ctx, user, p.BriefID)
+	if err != nil || current.Version != 4 {
+		t.Fatal("unchanged attachment save created a version", current, err)
 	}
 }

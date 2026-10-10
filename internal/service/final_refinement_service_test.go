@@ -49,15 +49,18 @@ type finalEditorStub struct {
 	calls     int
 	reference string
 	fail      bool
+	prompt    string
 }
 
-func (p *finalEditorStub) Submit(context.Context, string, string) (higgsfield.Job, error) {
+func (p *finalEditorStub) Submit(_ context.Context, kind, prompt string) (higgsfield.Job, error) {
 	p.calls++
+	p.prompt = prompt
 	return higgsfield.Job{RequestID: "request", Status: "queued"}, nil
 }
 func (p *finalEditorStub) Refine(_ context.Context, kind, prompt, reference string) (higgsfield.Job, error) {
 	p.calls++
 	p.reference = reference
+	p.prompt = prompt
 	if !strings.Contains(prompt, "Warm lighting") {
 		return higgsfield.Job{}, errors.New("missing instructions")
 	}

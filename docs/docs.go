@@ -468,6 +468,58 @@ const docTemplate = `{
                 }
             }
         },
+        "/projects/{projectID}/finals/{finalID}/regenerations": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "projects"
+                ],
+                "summary": "Generate another iteration using the saved prompt and original reference",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Project ID",
+                        "name": "projectID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Saved final output ID",
+                        "name": "finalID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Image index and idempotency key",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_farrasnazhif_ripple-be_internal_dto_request.FinalRegeneration"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_farrasnazhif_ripple-be_internal_entity.FinalOutput"
+                        }
+                    }
+                }
+            }
+        },
         "/projects/{projectID}/images": {
             "post": {
                 "security": [
@@ -565,6 +617,17 @@ const docTemplate = `{
                 },
                 "reason": {
                     "type": "string"
+                },
+                "request_key": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_farrasnazhif_ripple-be_internal_dto_request.FinalRegeneration": {
+            "type": "object",
+            "properties": {
+                "image_index": {
+                    "type": "integer"
                 },
                 "request_key": {
                     "type": "string"

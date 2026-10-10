@@ -85,6 +85,7 @@ func New(cfg Config, authHandler *handler.AuthHandler, userHandler *handler.User
 			r.With(auth, apiLimiter).Post("/projects/{projectID}/images", cfg.Review.GenerateImage)
 			r.With(auth, apiLimiter).Post("/projects/{projectID}/final", cfg.Review.Final)
 			r.With(auth, apiLimiter).Post("/projects/{projectID}/finals/{finalID}/refinements", cfg.Review.RefineFinal)
+			r.With(auth, apiLimiter).Post("/projects/{projectID}/finals/{finalID}/regenerations", cfg.Review.RegenerateFinal)
 			r.With(auth, apiLimiter).Get("/projects/{projectID}/finals/{finalID}", cfg.Review.GetFinal)
 			r.With(auth, apiLimiter).Post("/projects/{projectID}/finals/{finalID}/accept", cfg.Review.AcceptFinal)
 		}

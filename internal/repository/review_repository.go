@@ -85,6 +85,30 @@ func (r *reviewRepository) Edit(ctx context.Context, user, project string, input
 	if version != input.ExpectedVersion {
 		return ErrWorkflowConflict
 	}
+	points, err := json.Marshal(input.Points)
+	if err != nil {
+		return err
+	}
+	if input.Points == nil {
+		points = []byte("[]")
+	}
+	var unchanged bool
+	err = tx.QueryRowContext(ctx, `SELECT b.raw_text=$2 AND COALESCE(b.summary,'')=$3
+ AND COALESCE((SELECT jsonb_object_agg(key,jsonb_build_object('value',value,'scope',scope)) FROM brief_points WHERE brief_id=b.id),'{}')
+ = COALESCE((SELECT jsonb_object_agg(key,jsonb_build_object('value',value,'scope',scope)) FROM jsonb_to_recordset($4::jsonb) AS p(key text,value text,scope text)),'{}')
+ AND NOT EXISTS(SELECT 1 FROM brief_versions v WHERE v.brief_id=b.id AND v.version=b.version
+ AND ARRAY(SELECT id::text FROM brief_attachments WHERE brief_id=b.id AND status='completed' AND NOT removed ORDER BY id::text)
+ <> ARRAY(SELECT jsonb_array_elements_text(v.attachments) ORDER BY 1))
+ FROM briefs b WHERE b.id=$1`, id, input.RawText, input.Summary, string(points)).Scan(&unchanged)
+	if err != nil {
+		return err
+	}
+	if unchanged && len(input.RemoveAttachments) == 0 {
+		if err = snapshotBrief(ctx, tx, id, user); err != nil {
+			return err
+		}
+		return tx.Commit()
+	}
 	if err = snapshotBrief(ctx, tx, id, user); err != nil {
 		return err
 	}

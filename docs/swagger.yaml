@@ -18,6 +18,13 @@ definitions:
       request_key:
         type: string
     type: object
+  github_com_farrasnazhif_ripple-be_internal_dto_request.FinalRegeneration:
+    properties:
+      image_index:
+        type: integer
+      request_key:
+        type: string
+    type: object
   github_com_farrasnazhif_ripple-be_internal_dto_request.Login:
     properties:
       email:
@@ -460,6 +467,39 @@ paths:
       security:
       - BearerAuth: []
       summary: Refine a saved final image or video using it as a reference
+      tags:
+      - projects
+  /projects/{projectID}/finals/{finalID}/regenerations:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectID
+        required: true
+        type: string
+      - description: Saved final output ID
+        in: path
+        name: finalID
+        required: true
+        type: string
+      - description: Image index and idempotency key
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_farrasnazhif_ripple-be_internal_dto_request.FinalRegeneration'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            $ref: '#/definitions/github_com_farrasnazhif_ripple-be_internal_entity.FinalOutput'
+      security:
+      - BearerAuth: []
+      summary: Generate another iteration using the saved prompt and original reference
       tags:
       - projects
   /projects/{projectID}/images:

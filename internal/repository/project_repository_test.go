@@ -99,7 +99,7 @@ func TestProjectEditingAndDeletionDatabase(t *testing.T) {
 			t.Fatal("live reference must not be cleaned up")
 		}
 	}
-	final := &entity.FinalOutput{BriefVersion: 2, Kind: "video", JobIDs: []string{j.ID}, Outputs: []string{}, ObjectKey: finalKey}
+	final := &entity.FinalOutput{BriefVersion: j.BriefVersion, Kind: "video", JobIDs: []string{j.ID}, Outputs: []string{}, ObjectKey: finalKey}
 	if err = reviews.SaveFinal(ctx, user, p.ID, final); err != nil {
 		t.Fatal(err)
 	}
